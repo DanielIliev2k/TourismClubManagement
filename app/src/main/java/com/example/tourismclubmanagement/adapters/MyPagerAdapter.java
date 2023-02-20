@@ -9,7 +9,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.PagerAdapter;
 
-import com.example.tourismclubmanagement.MainScreen;
 import com.example.tourismclubmanagement.R;
 import com.example.tourismclubmanagement.models.Event;
 
@@ -35,7 +34,7 @@ public class MyPagerAdapter extends PagerAdapter {
                 page = inflater.inflate(R.layout.events_page, container, false);
                 RecyclerView recyclerView = page.findViewById(R.id.events_list_container);
                 recyclerView.setLayoutManager(new LinearLayoutManager(container.getContext()));
-                recyclerView.setAdapter(new CustomRecyclerViewAdapter(events));
+                recyclerView.setAdapter(new EventRecyclerViewAdapter(events));
                 break;
             case 1:
                 page = inflater.inflate(R.layout.members_page, container, false);

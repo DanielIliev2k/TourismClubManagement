@@ -1,9 +1,10 @@
 package com.example.tourismclubmanagement.models;
 
+import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
-public class User {
+public class User implements Serializable {
     private String username;
     private String password;
     private Date dateCreated;

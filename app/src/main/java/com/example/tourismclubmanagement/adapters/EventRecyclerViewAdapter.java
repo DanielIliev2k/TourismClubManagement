@@ -11,14 +11,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.tourismclubmanagement.R;
 import com.example.tourismclubmanagement.models.Event;
 
-import java.util.ArrayList;
 import java.util.List;
 
-public class CustomRecyclerViewAdapter extends RecyclerView.Adapter<CustomRecyclerViewAdapter.ViewHolder> {
+public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecyclerViewAdapter.ViewHolder> {
 
     private List<Event> eventsList;
 
-    public CustomRecyclerViewAdapter(List<Event> eventsList) {
+    public EventRecyclerViewAdapter(List<Event> eventsList) {
         this.eventsList = eventsList;
     }
 
