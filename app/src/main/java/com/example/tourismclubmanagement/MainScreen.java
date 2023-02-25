@@ -4,36 +4,29 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.appcompat.widget.AppCompatEditText;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
 import android.app.Dialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
 import android.widget.DatePicker;
-import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
-import com.example.tourismclubmanagement.adapters.EventRecyclerViewAdapter;
 import com.example.tourismclubmanagement.adapters.MyPagerAdapter;
 import com.example.tourismclubmanagement.models.Event;
+import com.example.tourismclubmanagement.models.User;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import java.sql.Time;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.Locale;
 
 public class MainScreen extends AppCompatActivity {
 
@@ -42,19 +35,15 @@ public class MainScreen extends AppCompatActivity {
     private AppCompatEditText durationAdd;
     private AppCompatEditText equipmentAdd;
     private AppCompatEditText notesAdd;
+    private Intent loginIntent;
     private TimePicker timePickerAdd;
     private DatePicker datePickerAdd;
-
+    private User loggedInUser;
     private Dialog addEventPopup;
     private MyPagerAdapter adapter;
     private ViewPager viewPager;
     private AppCompatButton button;
-    private LinearLayoutManager manager;
-    private SimpleDateFormat dateFormat;
-    private SimpleDateFormat timeFormat;
     private Event event;
-    private EventRecyclerViewAdapter recyclerViewAdapter;
-    private RecyclerView recyclerView;
     private ArrayList<Event> eventsList;
     private FirebaseDatabase database;
     private DatabaseReference eventsDatasource;
@@ -63,11 +52,11 @@ public class MainScreen extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_screen);
-        dateFormat = new SimpleDateFormat("ddMMyyyy", Locale.getDefault());
-        timeFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
+        loginIntent = this.getIntent();
+        loggedInUser = (User)loginIntent.getExtras().getSerializable("user");
         //Setting connection to the Firebase database
         database = FirebaseDatabase.getInstance("https://tourismclubmanagement-default-rtdb.europe-west1.firebasedatabase.app/");
-        eventsDatasource = database.getReference("events");
+        eventsDatasource = database.getReference("groups").child(loggedInUser.getGroupId()).child("events");
         addEventPopup = new Dialog(MainScreen.this);
         //Instantiating the list in which the events from database will be stored
         eventsList = new ArrayList<>();
@@ -145,8 +134,9 @@ public class MainScreen extends AppCompatActivity {
         event.setNotes(notesAdd.getText().toString());
         event.setEventName(eventNameAdd.getText().toString());
         event.setDepartureTime(eventTime);
-        String key = eventsDatasource.push().getKey();
-        eventsDatasource.child(key).setValue(event);
+        String eventId = eventsDatasource.push().getKey();
+        event.setId(eventId);
+        eventsDatasource.child(eventId).setValue(event);
         addEventPopup.dismiss();
         addEventPopup=new Dialog(MainScreen.this);
 

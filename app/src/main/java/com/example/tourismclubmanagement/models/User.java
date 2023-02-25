@@ -5,25 +5,43 @@ import java.util.Date;
 import java.util.List;
 
 public class User implements Serializable {
+    private String id;
     private String username;
     private String password;
+    private String groupId;
     private Date dateCreated;
     private String name;
     private Date birthDate;
-    private List<Event> eventParticipation;
-    private List<Event> eventApplications;
+    private List<String> confirmedEvents;
+    private List<String> eventApplications;
     private String hometown;
     private Boolean isAdmin;
 
     public User() {
     }
+    public User(String groupId,String id) {
+        this.groupId = groupId;
+        this.id = id;
+        this.dateCreated = new Date();
+    }
 
-    public User(String username, String password, Date dateCreated, Boolean isAdmin) {
+    public User(String username, String password, Boolean isAdmin,String groupId,String id) {
         this.username = username;
         this.password = password;
-        this.dateCreated = dateCreated;
+        this.dateCreated = new Date();
         this.isAdmin = isAdmin;
+        this.groupId = groupId;
+        this.id = id;
     }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
 
     public String getUsername() {
         return username;
@@ -45,10 +63,6 @@ public class User implements Serializable {
         return dateCreated;
     }
 
-    public void setDateCreated(Date dateCreated) {
-        this.dateCreated = dateCreated;
-    }
-
     public String getName() {
         return name;
     }
@@ -65,19 +79,19 @@ public class User implements Serializable {
         this.birthDate = birthDate;
     }
 
-    public List<Event> getEventParticipation() {
-        return eventParticipation;
+    public List<String> getConfirmedEvents() {
+        return confirmedEvents;
     }
 
-    public void setEventParticipation(List<Event> eventParticipation) {
-        this.eventParticipation = eventParticipation;
+    public void setConfirmedEvents(List<String> confirmedEvents) {
+        this.confirmedEvents = confirmedEvents;
     }
 
-    public List<Event> getEventApplications() {
+    public List<String> getEventApplications() {
         return eventApplications;
     }
 
-    public void setEventApplications(List<Event> eventApplications) {
+    public void setEventApplications(List<String> eventApplications) {
         this.eventApplications = eventApplications;
     }
 

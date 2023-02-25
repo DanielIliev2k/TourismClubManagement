@@ -7,6 +7,7 @@ import java.util.Date;
 import java.util.List;
 
 public class Event {
+    private String id;
     private String eventName;
     private String location;
     private Date departureTime;
@@ -29,6 +30,15 @@ public class Event {
 
     public Event() {
     }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     public Event(String name) {
         this.eventName = name;
     }

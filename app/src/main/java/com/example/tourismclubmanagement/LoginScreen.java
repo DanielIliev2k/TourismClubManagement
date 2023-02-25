@@ -3,6 +3,7 @@ package com.example.tourismclubmanagement;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
+import androidx.appcompat.widget.AppCompatEditText;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -26,6 +27,8 @@ public class LoginScreen extends AppCompatActivity {
     private TextInputEditText usernameField;
     private TextInputEditText passwordField;
     private AppCompatButton loginButton;
+    private AppCompatButton createNewGroupButton;
+    private Intent createGroupIntent;
     private Intent mainScreenIntent;
     private User user;
     private List<User> users;
@@ -38,19 +41,36 @@ public class LoginScreen extends AppCompatActivity {
         setContentView(R.layout.activity_login_screen);
         database = FirebaseDatabase.getInstance("https://tourismclubmanagement-default-rtdb.europe-west1.firebasedatabase.app/");
         usersDatasource = database.getReference("users");
-        usernameField = findViewById(R.id.usernameField);
-        passwordField = findViewById(R.id.passwordField);
-        loginButton = findViewById(R.id.loginButton);
-        mainScreenIntent = new Intent(this,MainScreen.class);
-        user = new User();
-        users = new ArrayList<>();
-        users = getUserInfoFromDb();
+        instantiate();
+        setButtonOnClickListeners();
+    }
+    public void setButtonOnClickListeners(){
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 login();
             }
         });
+        createNewGroupButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                newGroupCreation();
+            }
+        });
+    }
+    public void newGroupCreation(){
+        startActivity(createGroupIntent);
+    }
+    public void instantiate(){
+        usernameField = findViewById(R.id.usernameField);
+        passwordField = findViewById(R.id.passwordField);
+        loginButton = findViewById(R.id.loginButton);
+        createNewGroupButton = findViewById(R.id.createNewGroupButton);
+        createGroupIntent = new Intent(this,CreateNewGroupScreen.class);
+        mainScreenIntent = new Intent(this,MainScreen.class);
+        user = new User();
+        users = new ArrayList<>();
+        users = getUserInfoFromDb();
     }
     public void login(){
         if (checkUserCredentials()){
