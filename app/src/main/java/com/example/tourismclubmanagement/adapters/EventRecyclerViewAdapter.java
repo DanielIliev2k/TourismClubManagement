@@ -8,6 +8,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.tourismclubmanagement.MainScreen;
 import com.example.tourismclubmanagement.R;
 import com.example.tourismclubmanagement.models.Event;
 
@@ -16,6 +17,14 @@ import java.util.List;
 public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecyclerViewAdapter.ViewHolder> {
 
     private List<Event> eventsList;
+    private OnItemClickListener mListener;
+    public interface OnItemClickListener {
+        void onItemClick(String eventId);
+
+    }
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        mListener = listener;
+    }
 
     public EventRecyclerViewAdapter(List<Event> eventsList) {
         this.eventsList = eventsList;
@@ -24,7 +33,7 @@ public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecycler
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item, parent, false);
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.events_list_item, parent, false);
         return new ViewHolder(view);
     }
 
@@ -38,6 +47,16 @@ public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecycler
         holder.departureTime.setText(event.getDepartureTime().toString());
         holder.equipment.setText(event.getEquipment());
         holder.itemView.getLayoutParams().height = 300;
+        holder.id = event.getId();
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // Call the onItemClick method on the OnItemClickListener
+                if (mListener != null) {
+                    mListener.onItemClick(holder.id);
+                }
+            }
+        });
     }
 
     @Override
@@ -52,6 +71,7 @@ public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecycler
         TextView notes;
         TextView departureTime;
         TextView equipment;
+        String id;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -61,6 +81,16 @@ public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecycler
             notes = itemView.findViewById(R.id.notes);
             departureTime = itemView.findViewById(R.id.departureTime);
             equipment = itemView.findViewById(R.id.equipment);
+
+
         }
+
+    }
+    public void updateEventsList(List<Event> events){
+        this.eventsList = events;
+        notifyDataSetChanged();
+}
+    public List<Event> getEventsList() {
+        return eventsList;
     }
 }

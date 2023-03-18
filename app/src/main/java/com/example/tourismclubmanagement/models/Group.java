@@ -1,22 +1,26 @@
 package com.example.tourismclubmanagement.models;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
-public class Group {
+public class Group implements Serializable {
     private String id;
-    private List<String> userIds;
-    private List<Event> events;
+    private ArrayList<String> userIds;
+    private HashMap<String,Event> events;
     private String groupName;
     private Date dateCreated;
 
     public Group() {
     }
 
-    public Group(String id) {
+    public Group(String id,Date dateCreated) {
         this.id = id;
-        this.dateCreated = new Date();
+        this.dateCreated = dateCreated;
     }
+
 
     public Date getDateCreated() {
         return dateCreated;
@@ -26,19 +30,19 @@ public class Group {
         return id;
     }
 
-    public List<String> getUserIds() {
+    public ArrayList<String> getUserIds() {
         return userIds;
     }
 
-    public void setUserIds(List<String> userIds) {
+    public void setUserIds(ArrayList<String> userIds) {
         this.userIds = userIds;
     }
 
-    public List<Event> getEvents() {
+    public HashMap<String,Event> getEvents() {
         return events;
     }
 
-    public void setEvents(List<Event> events) {
+    public void setEvents(HashMap<String,Event> events) {
         this.events = events;
     }
 

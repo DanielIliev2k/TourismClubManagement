@@ -11,11 +11,12 @@ public class User implements Serializable {
     private String groupId;
     private Date dateCreated;
     private String name;
-    private Date birthDate;
+    private Integer age;
     private List<String> confirmedEvents;
     private List<String> eventApplications;
     private String hometown;
     private Boolean isAdmin;
+    private Boolean firstLogin;
 
     public User() {
     }
@@ -23,6 +24,7 @@ public class User implements Serializable {
         this.groupId = groupId;
         this.id = id;
         this.dateCreated = new Date();
+        firstLogin = true;
     }
 
     public User(String username, String password, Boolean isAdmin,String groupId,String id) {
@@ -32,6 +34,15 @@ public class User implements Serializable {
         this.isAdmin = isAdmin;
         this.groupId = groupId;
         this.id = id;
+        firstLogin = false;
+    }
+
+    public Boolean getFirstLogin() {
+        return firstLogin;
+    }
+
+    public void setFirstLogin(Boolean firstLogin) {
+        this.firstLogin = firstLogin;
     }
 
     public String getId() {
@@ -71,12 +82,12 @@ public class User implements Serializable {
         this.name = name;
     }
 
-    public Date getBirthDate() {
-        return birthDate;
+    public Integer getAge() {
+        return age;
     }
 
-    public void setBirthDate(Date birthDate) {
-        this.birthDate = birthDate;
+    public void setAge(Integer age) {
+        this.age = age;
     }
 
     public List<String> getConfirmedEvents() {

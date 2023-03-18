@@ -1,12 +1,13 @@
 package com.example.tourismclubmanagement.models;
 
+import java.io.Serializable;
 import java.sql.Time;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class Event {
+public class Event implements Serializable {
     private String id;
     private String eventName;
     private String location;

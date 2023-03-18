@@ -14,6 +14,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 public class CreateNewGroupScreen extends AppCompatActivity {
@@ -24,11 +26,12 @@ public class CreateNewGroupScreen extends AppCompatActivity {
     private FirebaseDatabase database;
     private DatabaseReference groupsDatasource;
     private DatabaseReference usersDatasource;
-    private List<String> groupUserIds;
+    private ArrayList<String> groupUserIds;
     private Intent loginIntent;
 
     private User user;
     private Group group;
+    private Intent firstLoginEditUserIntent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,10 +52,21 @@ public class CreateNewGroupScreen extends AppCompatActivity {
                 addUserToDb();
                 group.setUserIds(groupUserIds);
                 groupsDatasource.child(group.getId()).setValue(group);
-                logNewUserIn();
+                if (user.getFirstLogin())
+                {
+                    startFirstLoginEditUser();
+                }
+                else {
+                    logNewUserIn();
+                }
             }
         });
 
+    }
+    public void startFirstLoginEditUser(){
+        firstLoginEditUserIntent = new Intent(this,FirstLoginUserEditInfoScreen.class);
+        firstLoginEditUserIntent.putExtra("user",user);
+        this.startActivity(firstLoginEditUserIntent);
     }
     public void instantiate(){
         usernameField = findViewById(R.id.usernameField);
@@ -72,8 +86,10 @@ public class CreateNewGroupScreen extends AppCompatActivity {
     }
     public void createGroup(){
         String groupId = groupsDatasource.push().getKey();
-        group = new Group(groupId);
+        group = new Group(groupId,new Date());
         group.setGroupName(groupNameField.getText().toString());
+        group.setUserIds(new ArrayList<>());
+        group.setEvents(new HashMap<>());
     }
     public void logNewUserIn(){
         loginIntent.putExtra("user",user);

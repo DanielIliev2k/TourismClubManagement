@@ -30,6 +30,7 @@ public class LoginScreen extends AppCompatActivity {
     private AppCompatButton createNewGroupButton;
     private Intent createGroupIntent;
     private Intent mainScreenIntent;
+    private Intent firstLoginEditUserIntent;
     private User user;
     private List<User> users;
     private FirebaseDatabase database;
@@ -48,7 +49,7 @@ public class LoginScreen extends AppCompatActivity {
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                login();
+              login();
             }
         });
         createNewGroupButton.setOnClickListener(new View.OnClickListener() {
@@ -58,7 +59,13 @@ public class LoginScreen extends AppCompatActivity {
             }
         });
     }
+    public void startFirstLoginEditUser(){
+        firstLoginEditUserIntent = new Intent(this,FirstLoginUserEditInfoScreen.class);
+        firstLoginEditUserIntent.putExtra("user",user);
+        this.startActivity(firstLoginEditUserIntent);
+    }
     public void newGroupCreation(){
+        createGroupIntent = new Intent(this,CreateNewGroupScreen.class);
         startActivity(createGroupIntent);
     }
     public void instantiate(){
@@ -66,16 +73,22 @@ public class LoginScreen extends AppCompatActivity {
         passwordField = findViewById(R.id.passwordField);
         loginButton = findViewById(R.id.loginButton);
         createNewGroupButton = findViewById(R.id.createNewGroupButton);
-        createGroupIntent = new Intent(this,CreateNewGroupScreen.class);
-        mainScreenIntent = new Intent(this,MainScreen.class);
         user = new User();
         users = new ArrayList<>();
         users = getUserInfoFromDb();
     }
     public void login(){
         if (checkUserCredentials()){
-            mainScreenIntent.putExtra("user",user);
-            this.startActivity(mainScreenIntent);
+            if (user.getFirstLogin())
+            {
+                startFirstLoginEditUser();
+            }
+            else {
+                mainScreenIntent = new Intent(this,MainScreen.class);
+                mainScreenIntent.putExtra("user",user);
+                this.startActivity(mainScreenIntent);
+            }
+
         }
         else{
             Toast.makeText(this,"Error",Toast.LENGTH_LONG);

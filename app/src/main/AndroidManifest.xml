@@ -12,6 +12,9 @@
         android:theme="@style/Theme.TourismClubManagement"
         tools:targetApi="31">
         <activity
+            android:name=".FirstLoginUserEditInfoScreen"
+            android:exported="false" />
+        <activity
             android:name=".CreateNewGroupScreen"
             android:exported="false" />
         <activity
@@ -25,13 +28,7 @@
         </activity>
         <activity
             android:name=".MainScreen"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="true"></activity>
     </application>
 
 </manifest>
