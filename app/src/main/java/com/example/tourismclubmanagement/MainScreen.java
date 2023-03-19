@@ -8,6 +8,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
 import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -34,17 +35,17 @@ import java.util.Date;
 
 public class MainScreen extends AppCompatActivity implements EventRecyclerViewAdapter.OnItemClickListener {
 
-    private AppCompatEditText eventNameAdd;
-    private AppCompatEditText locationAdd;
-    private AppCompatEditText durationAdd;
-    private AppCompatEditText equipmentAdd;
-    private AppCompatEditText notesAdd;
+    private AppCompatEditText eventNameField;
+    private AppCompatEditText eventLocationField;
+    private AppCompatEditText eventDurationField;
+    private AppCompatEditText eventEquipmentField;
+    private AppCompatEditText eventNotesField;
+    private TimePicker eventTimePicker;
+    private DatePicker eventDatePicker;
     private Intent loginIntent;
     private AppCompatButton deleteEventButton;
-    private TimePicker timePickerAdd;
-    private DatePicker datePickerAdd;
     private User loggedInUser;
-    private Dialog addEventPopup;
+    private Dialog eventFormPopup;
     private Dialog newUserInfoPopup;
     private Dialog deleteEventPopup;
     private MyPagerAdapter pagerAdapter;
@@ -64,6 +65,7 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
     private Boolean takenGroupFromDb;
     private RecyclerView eventsRecyclerView;
     private Boolean deleteEventMode;
+    private Boolean editEventMode;
     private Boolean initialDataPullsComplete;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,7 +78,7 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
         eventsDatasource = database.getReference("groups").child(loggedInUser.getGroupId()).child("events");
         usersDatasource = database.getReference("users");
         groupsDatasource = database.getReference("groups");
-        addEventPopup = new Dialog(MainScreen.this);
+        eventFormPopup = new Dialog(MainScreen.this);
         newUserInfoPopup = new Dialog(MainScreen.this);
         instantiate();
 
@@ -179,53 +181,84 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
         viewPager.setAdapter(pagerAdapter);
         generateAddEventButton();
         generateAddUserButton();
+        generateEditEventButton();
         generateDeleteEventButton();
         initialDataPullsComplete = true;
 
     }
-    public void showAddEventPopup(View view){
-        addEventPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        addEventPopup.setCancelable(true);
-        addEventPopup.setContentView(R.layout.add_event_popup);
+    public void showEventFormPopup(Event event){
+        eventFormPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        eventFormPopup.setCancelable(true);
+        eventFormPopup.setContentView(R.layout.event_form_popup);
+        eventFormPopup.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                eventFormPopup = new Dialog(MainScreen.this);
+            }
+        });
 
-        addEventPopup.show();
+        eventFormPopup.show();
 
-        instantiateAddEventElements();
-        final AppCompatButton addEventButton = addEventPopup.findViewById(R.id.addEventButton);
-        addEventButton.setOnClickListener(new View.OnClickListener() {
+        instantiateEventFormElements();
+        if (editEventMode){
+            populateEventFields(event);
+        }
+        final AppCompatButton saveEventButton = eventFormPopup.findViewById(R.id.saveEventButton);
+        saveEventButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                addNewEventToDb(view);
+                addFormEventToDb(event);
             }
         });
     }
-    public void instantiateAddEventElements(){
-        eventNameAdd = addEventPopup.findViewById(R.id.eventNameAdd);
-        locationAdd = addEventPopup.findViewById(R.id.locationAdd);
-        durationAdd = addEventPopup.findViewById(R.id.durationAdd);
-        equipmentAdd = addEventPopup.findViewById(R.id.equipmentAdd);
-        notesAdd = addEventPopup.findViewById(R.id.notesAdd);
-        datePickerAdd = addEventPopup.findViewById(R.id.datePickerAdd);
-        timePickerAdd = addEventPopup.findViewById(R.id.timePickerAdd);
+    public void populateEventFields(Event event){
+        eventNameField.setText(event.getEventName());
+        eventLocationField.setText(event.getLocation());
+        eventDurationField.setText(event.getDuration());
+        eventEquipmentField.setText(event.getEquipment());
+        eventNotesField.setText(event.getNotes());
+        eventDatePicker.updateDate(event.getDepartureTime().getYear(),event.getDepartureTime().getMonth(),event.getDepartureTime().getDay());
+        eventTimePicker.setHour(event.getDepartureTime().getHours());
+        eventTimePicker.setMinute(event.getDepartureTime().getMinutes());
     }
-    public void addNewEventToDb(View view){
-        Event event = new Event();
+    public void instantiateEventFormElements(){
+        eventNameField = eventFormPopup.findViewById(R.id.eventNameField);
+        eventLocationField = eventFormPopup.findViewById(R.id.eventLocationField);
+        eventDurationField = eventFormPopup.findViewById(R.id.eventDurationField);
+        eventEquipmentField = eventFormPopup.findViewById(R.id.eventEquipmentField);
+        eventNotesField = eventFormPopup.findViewById(R.id.eventNotesField);
+        eventDatePicker = eventFormPopup.findViewById(R.id.eventDatePicker);
+        eventTimePicker = eventFormPopup.findViewById(R.id.eventTimePicker);
+    }
+    public void addFormEventToDb(Event event){
+        String eventId = new String();
         final Date eventTime = new Date();
-        eventTime.setHours(timePickerAdd.getHour());
-        eventTime.setMinutes(timePickerAdd.getMinute());
-        eventTime.setDate(datePickerAdd.getDayOfMonth());
-        eventTime.setMonth(datePickerAdd.getMonth());
-        eventTime.setYear(datePickerAdd.getYear());
-        event.setEventName(eventNameAdd.getText().toString());
-        event.setDuration(durationAdd.getText().toString());
-        event.setLocation(locationAdd.getText().toString());
-        event.setEquipment(equipmentAdd.getText().toString());
-        event.setNotes(notesAdd.getText().toString());
-        event.setEventName(eventNameAdd.getText().toString());
+        eventTime.setHours(eventTimePicker.getHour());
+        eventTime.setMinutes(eventTimePicker.getMinute());
+        eventTime.setDate(eventDatePicker.getDayOfMonth());
+        eventTime.setMonth(eventDatePicker.getMonth());
+        eventTime.setYear(eventDatePicker.getYear());
+        event.setEventName(eventNameField.getText().toString());
+        event.setDuration(eventDurationField.getText().toString());
+        event.setLocation(eventLocationField.getText().toString());
+        event.setEquipment(eventEquipmentField.getText().toString());
+        event.setNotes(eventNotesField.getText().toString());
+        event.setEventName(eventNameField.getText().toString());
         event.setDepartureTime(eventTime);
-        String eventId = eventsDatasource.push().getKey();
-        event.setId(eventId);
+        if (event.getId()!=null){
+            eventId = event.getId();
+        }
+        else{
+            eventId = eventsDatasource.push().getKey();
+            event.setId(eventId);
+        }
         eventsDatasource.child(eventId).setValue(event);
+        updateEventsFromDb();
+        eventFormPopup.dismiss();
+        eventFormPopup =new Dialog(MainScreen.this);
+
+    }
+    public void updateEventsFromDb(){
         eventsDatasource.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -242,9 +275,6 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
                 Toast.makeText(MainScreen.this, "Failed to retrieve data.", Toast.LENGTH_SHORT).show();
             }
         });
-        addEventPopup.dismiss();
-        addEventPopup=new Dialog(MainScreen.this);
-
     }
     public void instantiate(){
         eventsList = new ArrayList<>();
@@ -254,6 +284,7 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
         takenEventsFromDb =false;
         takenGroupFromDb =false;
         deleteEventMode = false;
+        editEventMode = false;
         initialDataPullsComplete = false;
     }
     public void generateAddEventButton(){
@@ -262,10 +293,22 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
             addEventButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    showAddEventPopup(v);
+                    showEventFormPopup(new Event());
                     deleteEventMode = false;
+                    editEventMode = false;
                 }
             });
+    }
+    public void generateEditEventButton(){
+
+        AppCompatButton editEventButton = pagerAdapter.getPage(0).findViewById(R.id.editEventButton);
+        editEventButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                editEventMode = !editEventMode;
+                deleteEventMode = false;
+            }
+        });
     }
     public void generateAddUserButton(){
         AppCompatButton addUserButton = pagerAdapter.getPage(1).findViewById(R.id.addUserButton);
@@ -285,7 +328,6 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
             }
         });
     }
-//
     public void showDeleteEventPopup(View view){
         deleteEventPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
         deleteEventPopup.setCancelable(true);
@@ -373,6 +415,16 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
             public void onItemClick(String eventId) {
                 if (deleteEventMode){
                     deleteEvent(eventId);
+                }
+                if (editEventMode){
+                    Event event = new Event();
+                    for (Event tempEvent:eventsList) {
+                        if (tempEvent.getId().equals(eventId)){
+                            event = tempEvent;
+                            break;
+                        }
+                    }
+                    showEventFormPopup(event);
                 }
             }
         });

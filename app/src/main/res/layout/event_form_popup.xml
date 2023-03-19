@@ -7,7 +7,7 @@
     android:background="@color/Gray">
 
     <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/eventNameAdd"
+        android:id="@+id/eventNameField"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="200dp"
@@ -19,7 +19,7 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/locationAdd"
+        android:id="@+id/eventLocationField"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="200dp"
@@ -31,7 +31,7 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/durationAdd"
+        android:id="@+id/eventDurationField"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="200dp"
@@ -43,7 +43,7 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/equipmentAdd"
+        android:id="@+id/eventEquipmentField"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="200dp"
@@ -55,7 +55,7 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/notesAdd"
+        android:id="@+id/eventNotesField"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="200dp"
@@ -67,19 +67,21 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <DatePicker
-        android:id="@+id/datePickerAdd"
+        android:id="@+id/eventDatePicker"
         android:layout_width="367dp"
         android:layout_height="261dp"
         android:layout_marginStart="20dp"
+        android:layout_marginTop="24dp"
         android:layout_marginEnd="20dp"
+        android:calendarViewShown="false"
         android:datePickerMode="spinner"
-        app:layout_constraintBottom_toTopOf="@+id/timePickerAdd"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        android:calendarViewShown="false"></DatePicker>
+        app:layout_constraintTop_toBottomOf="@+id/eventNotesField"></DatePicker>
 
     <TimePicker
-        android:id="@+id/timePickerAdd"
+        android:id="@+id/eventTimePicker"
         android:layout_width="167dp"
         android:layout_height="144dp"
         android:layout_marginStart="100dp"
@@ -91,7 +93,7 @@
         app:layout_constraintStart_toStartOf="parent"></TimePicker>
 
     <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/addEventButton"
+        android:id="@+id/saveEventButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
@@ -100,9 +102,7 @@
         android:layout_marginBottom="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/timePickerAdd"
-        app:layout_constraintTop_toBottomOf="@+id/datePickerAdd"
-        android:text="Add event"/>
+        android:text="save"/>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
