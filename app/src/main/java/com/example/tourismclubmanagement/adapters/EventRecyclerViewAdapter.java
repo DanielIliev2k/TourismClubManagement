@@ -8,7 +8,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.tourismclubmanagement.MainScreen;
 import com.example.tourismclubmanagement.R;
 import com.example.tourismclubmanagement.models.Event;
 

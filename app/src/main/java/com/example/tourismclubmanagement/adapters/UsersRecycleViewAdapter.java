@@ -15,7 +15,15 @@ import java.util.List;
 
 public class UsersRecycleViewAdapter extends RecyclerView.Adapter<UsersRecycleViewAdapter.ViewHolder>  {
     private List<User> usersList;
+    private OnItemClickListener mListener;
+    public interface OnItemClickListener {
+        void onItemClick(String userId);
 
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        mListener = listener;
+    }
     public UsersRecycleViewAdapter (List<User> usersList) {
         this.usersList = usersList;
     }
@@ -31,6 +39,7 @@ public class UsersRecycleViewAdapter extends RecyclerView.Adapter<UsersRecycleVi
     public void onBindViewHolder(@NonNull UsersRecycleViewAdapter.ViewHolder holder, int position) {
         User user = usersList.get(position);
         holder.username.setText(user.getUsername());
+        holder.id = user.getId();
         if (!user.getFirstLogin()){
             holder.name.setText(user.getName());
             holder.age.setText(user.getAge().toString());
@@ -38,6 +47,15 @@ public class UsersRecycleViewAdapter extends RecyclerView.Adapter<UsersRecycleVi
 //        holder.eventApplications.setText(user.getEventApplications().toString());
 //        holder.confirmedEvents.setText(user.getConfirmedEvents().toString());
         }
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // Call the onItemClick method on the OnItemClickListener
+                if (mListener != null) {
+                    mListener.onItemClick(holder.id);
+                }
+            }
+        });
 
         holder.itemView.getLayoutParams().height = 300;
     }
@@ -48,6 +66,7 @@ public class UsersRecycleViewAdapter extends RecyclerView.Adapter<UsersRecycleVi
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
+        String id;
         TextView username;
         TextView name;
         TextView age;

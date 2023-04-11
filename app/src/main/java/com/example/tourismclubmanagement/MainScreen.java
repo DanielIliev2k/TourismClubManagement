@@ -10,6 +10,7 @@ import androidx.viewpager.widget.ViewPager;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +22,7 @@ import android.widget.Toast;
 
 import com.example.tourismclubmanagement.adapters.EventRecyclerViewAdapter;
 import com.example.tourismclubmanagement.adapters.MyPagerAdapter;
+import com.example.tourismclubmanagement.adapters.UsersRecycleViewAdapter;
 import com.example.tourismclubmanagement.models.Event;
 import com.example.tourismclubmanagement.models.Group;
 import com.example.tourismclubmanagement.models.User;
@@ -51,6 +53,7 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
     private MyPagerAdapter pagerAdapter;
     private ViewPager viewPager;
     private Group group;
+    private AppCompatButton deleteUserButton;
     private ArrayList<Event> eventsList;
     private ArrayList<User> usersList;
     private ArrayList<String> usersInGroupList;
@@ -66,6 +69,7 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
     private RecyclerView eventsRecyclerView;
     private Boolean deleteEventMode;
     private Boolean editEventMode;
+    private Boolean deleteUserMode;
     private Boolean initialDataPullsComplete;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -178,11 +182,13 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
         pagerAdapter = new MyPagerAdapter(pages_inflater,eventsList,usersList);
         viewPager = findViewById(R.id.view_pager);
         eventsSetOnItemClickListener();
+        usersSetOnItemClickListener();
         viewPager.setAdapter(pagerAdapter);
         generateAddEventButton();
         generateAddUserButton();
         generateEditEventButton();
         generateDeleteEventButton();
+        generateDeleteUserButton();
         initialDataPullsComplete = true;
 
     }
@@ -286,6 +292,7 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
         deleteEventMode = false;
         editEventMode = false;
         initialDataPullsComplete = false;
+        deleteUserMode = false;
     }
     public void generateAddEventButton(){
 
@@ -305,6 +312,12 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
         editEventButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (!editEventMode){
+                    editEventButton.setBackgroundColor(Color.YELLOW);
+                }
+                else{
+                    editEventButton.setBackgroundColor(Color.GRAY);
+                }
                 editEventMode = !editEventMode;
                 deleteEventMode = false;
             }
@@ -315,6 +328,7 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
         addUserButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                deleteUserMode = false;
                 showNewUserInfoPopup(v);
             }
         });
@@ -324,7 +338,28 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
         deleteEventButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                if (!deleteEventMode){
+                    deleteEventButton.setBackgroundColor(Color.RED);
+                }
+                else{
+                    deleteEventButton.setBackgroundColor(Color.GRAY);
+                }
                 deleteEventMode=!deleteEventMode;
+            }
+        });
+    }
+    public void generateDeleteUserButton(){
+        deleteUserButton = pagerAdapter.getPage(1).findViewById(R.id.deleteUserButton);
+        deleteUserButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!deleteUserMode){
+                    deleteUserButton.setBackgroundColor(Color.RED);
+                }
+                else{
+                    deleteUserButton.setBackgroundColor(Color.GRAY);
+                }
+                deleteUserMode=!deleteUserMode;
             }
         });
     }
@@ -359,6 +394,32 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
             }
         });
     }
+    public void deleteUser(String userId){
+        usersDatasource.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                usersList.clear();
+                User user = new User();
+                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
+                    user = snapshot.getValue(User.class);
+                    usersList.add(user);
+                }
+                for (User tempUser:usersList) {
+                    if (user.getId().equals(userId))
+                    {
+                        usersList.remove(user);
+                        break;
+                    }
+                }
+                pagerAdapter.updateUsers(usersList);
+                usersDatasource.child(userId).removeValue();
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+                Toast.makeText(MainScreen.this, "Failed to retrieve data.", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
     public void showNewUserInfoPopup(View view){
         newUserInfoPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
         newUserInfoPopup.setCancelable(true);
@@ -369,6 +430,12 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
         generatedCredentialsField.setText(user.getUsername() + "\n" + user.getPassword());
 
         newUserInfoPopup.show();
+        newUserInfoPopup.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                newUserInfoPopup= new Dialog(MainScreen.this);
+            }
+        });
     }
     public User generateNewUser(){
         String userId = usersDatasource.push().getKey();
@@ -425,6 +492,17 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
                         }
                     }
                     showEventFormPopup(event);
+                }
+            }
+        });
+    }
+    private void usersSetOnItemClickListener() {
+        UsersRecycleViewAdapter usersRecycleViewAdapter = pagerAdapter.getUsersRecyclerViewAdapter();
+        usersRecycleViewAdapter.setOnItemClickListener(new UsersRecycleViewAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(String userId) {
+                if (deleteUserMode){
+                    deleteUser(userId);
                 }
             }
         });
