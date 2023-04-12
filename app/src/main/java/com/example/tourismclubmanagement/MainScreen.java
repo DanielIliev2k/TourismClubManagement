@@ -50,6 +50,8 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
     private Dialog eventFormPopup;
     private Dialog newUserInfoPopup;
     private Dialog deleteEventPopup;
+    private Dialog userDetailsPopup;
+    private Dialog eventDetailsPopup;
     private MyPagerAdapter pagerAdapter;
     private ViewPager viewPager;
     private Group group;
@@ -84,6 +86,8 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
         groupsDatasource = database.getReference("groups");
         eventFormPopup = new Dialog(MainScreen.this);
         newUserInfoPopup = new Dialog(MainScreen.this);
+        userDetailsPopup = new Dialog(MainScreen.this);
+        eventDetailsPopup = new Dialog(MainScreen.this);
         instantiate();
 
         getGroupFromDb();
@@ -483,7 +487,7 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
                 if (deleteEventMode){
                     deleteEvent(eventId);
                 }
-                if (editEventMode){
+                else if (editEventMode){
                     Event event = new Event();
                     for (Event tempEvent:eventsList) {
                         if (tempEvent.getId().equals(eventId)){
@@ -492,6 +496,9 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
                         }
                     }
                     showEventFormPopup(event);
+                }
+                else {
+                    showEventDetailsPopup(eventId);
                 }
             }
         });
@@ -504,7 +511,84 @@ public class MainScreen extends AppCompatActivity implements EventRecyclerViewAd
                 if (deleteUserMode){
                     deleteUser(userId);
                 }
+                else{
+                    showUserDetailsPopup(userId);
+                }
+
             }
         });
+    }
+    public void showUserDetailsPopup(String userId){
+        User user = new User();
+        getUsersFromDb();
+        for (User tempUser:usersList) {
+            if (tempUser.getId().equals(userId)){
+                user = tempUser;
+                break;
+            }
+        }
+        if (user.getId()!=null){
+            userDetailsPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            userDetailsPopup.setCancelable(true);
+            userDetailsPopup.setContentView(R.layout.user_details_popup);
+            TextView userDetailsNameField = userDetailsPopup.findViewById(R.id.userDetailsNameField);
+            TextView userDetailsUsernameField = userDetailsPopup.findViewById(R.id.userDetailsUsernameField);
+            TextView userDetailsAgeField = userDetailsPopup.findViewById(R.id.userDetailsAgeField);
+            TextView userDetailsHometownField = userDetailsPopup.findViewById(R.id.userDetailsHometownField);
+            if (user.getFirstLogin()){
+                userDetailsUsernameField.setText(user.getUsername());
+            }
+            else {
+                userDetailsNameField.setText(user.getName());
+                userDetailsUsernameField.setText(user.getUsername());
+                userDetailsAgeField.setText(user.getAge().toString());
+                userDetailsHometownField.setText(user.getHometown());
+            }
+            userDetailsPopup.show();
+            userDetailsPopup.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                @Override
+                public void onCancel(DialogInterface dialog) {
+                    userDetailsPopup= new Dialog(MainScreen.this);
+                }
+            });
+        }
+
+    }
+    public void showEventDetailsPopup(String eventId){
+        Event event = new Event();
+        getEventsFromDb();
+        for (Event tempEvent:eventsList) {
+            if (tempEvent.getId().equals(eventId)){
+                event = tempEvent;
+                break;
+            }
+        }
+        if (event.getId()!=null){
+            eventDetailsPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
+            eventDetailsPopup.setCancelable(true);
+            eventDetailsPopup.setContentView(R.layout.event_details_popup);
+            TextView eventDetailsNameField = eventDetailsPopup.findViewById(R.id.eventDetailsNameField);
+            TextView eventDetailsLocationField = eventDetailsPopup.findViewById(R.id.eventDetailsLocationField);
+            TextView eventDetailsEquipmentField = eventDetailsPopup.findViewById(R.id.eventDetailsEquipmentField);
+            TextView eventDetailsDurationField = eventDetailsPopup.findViewById(R.id.eventDetailsDurationField);
+            TextView eventDetailsDepartureTimeField = eventDetailsPopup.findViewById(R.id.eventDetailsDepartureTimeField);
+            TextView eventDetailsNotesField = eventDetailsPopup.findViewById(R.id.eventDetailsNotesField);
+
+            eventDetailsNameField.setText(event.getEventName());
+            eventDetailsLocationField.setText(event.getLocation());
+            eventDetailsEquipmentField.setText(event.getEquipment());
+            eventDetailsDurationField.setText(event.getDuration());
+            eventDetailsDepartureTimeField.setText(event.getDepartureTime().toString());
+            eventDetailsNotesField.setText(event.getNotes());
+
+            eventDetailsPopup.show();
+            eventDetailsPopup.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                @Override
+                public void onCancel(DialogInterface dialog) {
+                    eventDetailsPopup= new Dialog(MainScreen.this);
+                }
+            });
+        }
+
     }
 }
