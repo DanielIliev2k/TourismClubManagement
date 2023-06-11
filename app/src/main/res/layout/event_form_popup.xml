@@ -4,105 +4,148 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/Gray">
+    android:background="@drawable/event_item_background">
 
-    <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/eventNameField"
-        android:layout_width="wrap_content"
+
+    <RelativeLayout
+        android:id="@+id/relativeLayout"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="200dp"
-        android:layout_marginEnd="200dp"
-        android:layout_marginBottom="680dp"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/eventLocationField"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="200dp"
-        android:layout_marginEnd="200dp"
-        android:layout_marginBottom="620dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/eventDurationField"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="200dp"
-        android:layout_marginEnd="200dp"
-        android:layout_marginBottom="572dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/eventEquipmentField"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="200dp"
-        android:layout_marginEnd="200dp"
-        android:layout_marginBottom="516dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <androidx.appcompat.widget.AppCompatEditText
-        android:id="@+id/eventNotesField"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="200dp"
-        android:layout_marginEnd="200dp"
-        android:layout_marginBottom="472dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <DatePicker
-        android:id="@+id/eventDatePicker"
-        android:layout_width="367dp"
-        android:layout_height="261dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginTop="24dp"
-        android:layout_marginEnd="20dp"
-        android:calendarViewShown="false"
-        android:datePickerMode="spinner"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/eventNotesField"></DatePicker>
+        app:layout_constraintTop_toTopOf="parent">
 
-    <TimePicker
-        android:id="@+id/eventTimePicker"
-        android:layout_width="167dp"
-        android:layout_height="144dp"
-        android:layout_marginStart="100dp"
-        android:layout_marginEnd="100dp"
-        android:layout_marginBottom="13dp"
-        android:timePickerMode="spinner"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"></TimePicker>
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/cancelPopupButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:background="@android:drawable/ic_menu_close_clear_cancel" />
+    </RelativeLayout>
 
-    <androidx.appcompat.widget.AppCompatButton
-        android:id="@+id/saveEventButton"
-        android:layout_width="wrap_content"
+    <ScrollView
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_marginTop="92dp"
-        android:layout_marginEnd="22dp"
-        android:layout_marginBottom="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        android:text="save"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="10dp">
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:id="@+id/linearLayoutCompat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/nameText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Name:" />
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/eventNameField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="10dp"
+                android:layout_marginTop="10dp"
+                android:maxLength="80"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/newEventNameError"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/Red"
+                android:textSize="13sp"
+                android:visibility="invisible" />
+
+            <TextView
+                android:id="@+id/locationText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Location:" />
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/eventLocationField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/durationText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Duration:" />
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/eventDurationField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/equipmentText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Equipment:" />
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/eventEquipmentField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/notesText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Notes:" />
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/eventNotesField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:maxLines="1" />
+            <DatePicker
+                android:id="@+id/eventDatePicker"
+                android:layout_width="wrap_content"
+                android:layout_height="150dp"
+                android:layout_marginVertical="10dp"
+                android:layout_marginHorizontal="20dp"
+                android:calendarViewShown="false"
+                android:datePickerMode="spinner"
+                android:theme="@style/Theme.AppCompat.Light.Dialog.Alert"
+                android:layout_gravity="center"/>
+
+            <TimePicker
+                android:id="@+id/eventTimePicker"
+                android:layout_width="wrap_content"
+                android:layout_height="150dp"
+                android:theme="@style/Theme.AppCompat.Light.Dialog.Alert"
+                android:timePickerMode="spinner"
+                android:layout_marginVertical="10dp"
+                android:layout_marginHorizontal="20dp"
+                android:layout_gravity="center" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/saveEventButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="10dp"
+                android:background="@drawable/button_background"
+                android:text="Save"
+                android:layout_gravity="center"/>
+        </androidx.appcompat.widget.LinearLayoutCompat>
+    </ScrollView>
+
+
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

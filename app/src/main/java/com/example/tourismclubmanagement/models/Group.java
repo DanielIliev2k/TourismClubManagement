@@ -7,50 +7,40 @@ import java.util.HashMap;
 import java.util.List;
 
 public class Group implements Serializable {
-    private String id;
-    private ArrayList<String> userIds;
-    private HashMap<String,Event> events;
-    private String groupName;
-    private Date dateCreated;
+    private List<UserInGroupInfo> usersInGroup;
+    private List<Event> events;
+    private GroupInfo groupInfo;
 
     public Group() {
     }
 
-    public Group(String id,Date dateCreated) {
-        this.id = id;
-        this.dateCreated = dateCreated;
+    public Group(List<UserInGroupInfo> usersInGroup, List<Event> events, GroupInfo groupInfo) {
+        this.usersInGroup = usersInGroup;
+        this.events = events;
+        this.groupInfo = groupInfo;
     }
 
-
-    public Date getDateCreated() {
-        return dateCreated;
+    public GroupInfo getGroupInfo() {
+        return groupInfo;
     }
 
-    public String getId() {
-        return id;
+    public void setGroupInfo(GroupInfo groupInfo) {
+        this.groupInfo = groupInfo;
     }
 
-    public ArrayList<String> getUserIds() {
-        return userIds;
+    public List<UserInGroupInfo> getUsersInGroup() {
+        return usersInGroup;
     }
 
-    public void setUserIds(ArrayList<String> userIds) {
-        this.userIds = userIds;
+    public void setUsersInGroup(List<UserInGroupInfo> usersInGroup) {
+        this.usersInGroup = usersInGroup;
     }
 
-    public HashMap<String,Event> getEvents() {
+    public List<Event> getEvents() {
         return events;
     }
 
-    public void setEvents(HashMap<String,Event> events) {
+    public void setEvents(List<Event> events) {
         this.events = events;
-    }
-
-    public String getGroupName() {
-        return groupName;
-    }
-
-    public void setGroupName(String groupName) {
-        this.groupName = groupName;
     }
 }

@@ -11,6 +11,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.tourismclubmanagement.R;
 import com.example.tourismclubmanagement.models.Event;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecyclerViewAdapter.ViewHolder> {
@@ -40,11 +42,9 @@ public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecycler
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Event event = eventsList.get(position);
         holder.eventName.setText(event.getEventName());
-        holder.location.setText(event.getLocation());
-        holder.duration.setText(event.getDuration());
-        holder.notes.setText(event.getNotes());
-        holder.departureTime.setText(event.getDepartureTime().toString());
-        holder.equipment.setText(event.getEquipment());
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        String date = sdf.format(event.getDepartureTime());
+        holder.departureTime.setText(date);
         holder.itemView.getLayoutParams().height = 300;
         holder.id = event.getId();
         holder.itemView.setOnClickListener(new View.OnClickListener() {
@@ -65,23 +65,13 @@ public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecycler
 
     public class ViewHolder extends RecyclerView.ViewHolder {
         TextView eventName;
-        TextView location;
-        TextView duration;
-        TextView notes;
         TextView departureTime;
-        TextView equipment;
         String id;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             eventName = itemView.findViewById(R.id.eventName);
-            location = itemView.findViewById(R.id.location);
-            duration = itemView.findViewById(R.id.duration);
-            notes = itemView.findViewById(R.id.notes);
             departureTime = itemView.findViewById(R.id.departureTime);
-            equipment = itemView.findViewById(R.id.equipment);
-
-
         }
 
     }

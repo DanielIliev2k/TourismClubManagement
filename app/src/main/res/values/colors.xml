@@ -147,4 +147,15 @@
     <color name="DarkBlue">#00008B</color>
     <color name="Navy">#000080</color>
     <color name="Black">#000000</color>
+    <color name="Ochre">#D17B0F</color>
+    <color name="Citrine">#E8D33F</color>
+    <color name="Mindaro">#EDFF7A</color>
+    <color name="MindaroGreen">#D2FF96</color>
+    <color name="Celadon">#B7F0AD</color>
+    <color name="Peach">#E97777</color>
+    <color name="TiffanyBlue">#7FD8BE</color>
+    <color name="Wisteria">#B4A0E5</color>
+    <color name="MardiGras">#822E81</color>
+    <color name="LightRed">#ff1a0e</color>
+
 </resources>
