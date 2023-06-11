@@ -74,14 +74,14 @@ public class RegisterScreen extends AppCompatActivity {
                             Intent firstLoginScreen = new Intent(RegisterScreen.this, UserEditInfoScreen.class);
                             startActivity(firstLoginScreen);
                         } else {
-                            Toast.makeText(RegisterScreen.this, "Authentication failed.",
+                            Toast.makeText(RegisterScreen.this, Objects.requireNonNull(task.getException()).getMessage(),
                                     Toast.LENGTH_LONG).show();
                         }
                     }
                 });
         }
         if ((Objects.requireNonNull(registerUsernameField.getText()).toString().equals(""))) {
-            registerUsernameError.setText("Please type your username");
+            registerUsernameError.setText("Please type your email");
             registerUsernameError.setVisibility(View.VISIBLE);
         }
         if ((Objects.requireNonNull(registerPasswordField.getText()).toString().equals(""))) {
