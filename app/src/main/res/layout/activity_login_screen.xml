@@ -20,7 +20,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="20dp"
-            android:src="@drawable/main_logo"/>
+            android:src="@drawable/favourite_star_inactive"/>
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/usernameField"
@@ -28,6 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="50dp"
             android:hint="Email"
+            android:text="dd@dd.dd"
             android:textAlignment="center"
             android:textColorHint="@color/LightGrey"
             android:maxLines="1"
@@ -46,10 +47,12 @@
             android:layout_marginHorizontal="50dp"
             android:layout_marginTop="50dp"
             android:hint="Password"
+            android:text="dddddd"
             android:textAlignment="center"
             android:textColorHint="@color/LightGrey"
             android:maxLines="1"
-            android:maxLength="20"/>
+            android:maxLength="20"
+            android:inputType="textPassword"/>
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

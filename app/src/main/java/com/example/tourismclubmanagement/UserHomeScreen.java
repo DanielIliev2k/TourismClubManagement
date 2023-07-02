@@ -17,11 +17,13 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.tourismclubmanagement.adapters.UserGroupRecyclerViewAdapter;
+import com.example.tourismclubmanagement.comparators.GroupComparator;
 import com.example.tourismclubmanagement.models.Event;
 import com.example.tourismclubmanagement.models.Group;
 import com.example.tourismclubmanagement.models.GroupInfo;
 import com.example.tourismclubmanagement.models.Role;
 import com.example.tourismclubmanagement.models.User;
+import com.example.tourismclubmanagement.models.UserGroup;
 import com.example.tourismclubmanagement.models.UserInGroupInfo;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
@@ -36,6 +38,7 @@ import com.google.firebase.storage.ListResult;
 import com.google.firebase.storage.StorageReference;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -59,7 +62,6 @@ public class UserHomeScreen extends AppCompatActivity {
         setContentView(R.layout.activity_user_home_screen);
         instantiate();
         getLoggedInUserInfo(userAuth.getUid());
-        getUserGroups();
         displayUserGroups();
     }
 
@@ -67,7 +69,7 @@ public class UserHomeScreen extends AppCompatActivity {
         RecyclerView userGroupsContainer;
         userGroupsContainer = findViewById(R.id.userGroupsContainer);
         userGroupsContainer.setLayoutManager(new LinearLayoutManager(this));
-        userGroupRecycleViewAdapter = new UserGroupRecyclerViewAdapter(currentUserGroups);
+        userGroupRecycleViewAdapter = new UserGroupRecyclerViewAdapter(currentUserGroups,userInfo);
         userGroupsContainer.setAdapter(userGroupRecycleViewAdapter);
     }
     public void showCreateGroupPopup() {
@@ -200,8 +202,13 @@ public class UserHomeScreen extends AppCompatActivity {
                         }
                     }
                 for (User user:users) {
-                    List<String> userGroups = user.getGroups();
-                    userGroups.remove(group.getGroupInfo().getId());
+                    List<UserGroup> userGroups = user.getGroups();
+                    for (UserGroup userGroup:userGroups) {
+                        if (userGroup.getGroupId().equals(group.getGroupInfo().getId())){
+                            userGroups.remove(userGroup);
+                            break;
+                        }
+                    }
                     user.setGroups(userGroups);
                     usersDatasource.child(user.getId()).child("groups").setValue(userGroups);
                 }
@@ -229,21 +236,20 @@ public class UserHomeScreen extends AppCompatActivity {
         TextView groupNameError = newGroupNamePopup.findViewById(R.id.groupNameError);
         groupNameError.setVisibility(View.INVISIBLE);
         if (!(Objects.requireNonNull(newGroupNameField.getText()).toString().equals("")) ){
-            getLoggedInUserInfo(userInfo.getId());
             Group group = new Group();
             String groupId = groupsDatasource.push().getKey();
             group.setGroupInfo(new GroupInfo(groupId,newGroupNameField.getText().toString(),new Date()));
             List<UserInGroupInfo> usersInGroup = new ArrayList<>();
             usersInGroup.add(new UserInGroupInfo(userInfo.getId(), Role.OWNER));
             group.setUsersInGroup(usersInGroup);
-            List<String> userGroups = new ArrayList<>();
+            List<UserGroup> userGroups = new ArrayList<>();
             if (userInfo.getGroups()!=null){
                 userGroups = userInfo.getGroups();
             }
-            userGroups.add(group.getGroupInfo().getId());
+            userGroups.add(new UserGroup(group.getGroupInfo().getId(),false));
             userInfo.setGroups(userGroups);
-            usersDatasource.child(userInfo.getId()).setValue(userInfo);
             groupsDatasource.child(groupId).setValue(group);
+            usersDatasource.child(userInfo.getId()).setValue(userInfo);
             newGroupNamePopup.cancel();
         }
         if ((Objects.requireNonNull(newGroupNameField.getText()).toString().equals(""))) {
@@ -252,40 +258,38 @@ public class UserHomeScreen extends AppCompatActivity {
         }
     }
     public void getUserGroups() {
-        groupsDatasource.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                currentUserGroups.clear();
-                for (DataSnapshot data: snapshot.getChildren()) {
-                    if (userInfo.getGroups()!=null){
-                        for (String userGroup:userInfo.getGroups()) {
-                            if (userGroup.equals(data.getKey())) {
-                                Group group = new Group();
-                                List<Event> events = new ArrayList<>();
-                                for (DataSnapshot eventsData:data.child("events").getChildren()) {
-                                    events.add(eventsData.getValue(Event.class));
-                                }
-                                group.setEvents(events);
-                                group.setGroupInfo(data.child("groupInfo").getValue(GroupInfo.class));
-                                List<UserInGroupInfo> usersInGroup = new ArrayList<>();
-                                for (DataSnapshot userInGroupData:data.child("usersInGroup").getChildren()) {
-                                    usersInGroup.add(userInGroupData.getValue(UserInGroupInfo.class));
-                                }
-                                group.setUsersInGroup(usersInGroup);
-                                currentUserGroups.add(group);
-                            }
+        if (userInfo.getGroups()!=null){
+            currentUserGroups.clear();
+            for (UserGroup userGroup:userInfo.getGroups()) {
+                groupsDatasource.child(userGroup.getGroupId()).addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        Group group = new Group();
+                        List<Event> events = new ArrayList<>();
+                        for (DataSnapshot eventsData:snapshot.child("events").getChildren()) {
+                            events.add(eventsData.getValue(Event.class));
                         }
+                        group.setEvents(events);
+                        group.setGroupInfo(snapshot.child("groupInfo").getValue(GroupInfo.class));
+                        List<UserInGroupInfo> usersInGroup = new ArrayList<>();
+                        for (DataSnapshot userInGroupData:snapshot.child("usersInGroup").getChildren()) {
+                            usersInGroup.add(userInGroupData.getValue(UserInGroupInfo.class));
+                        }
+                        group.setUsersInGroup(usersInGroup);
+                        currentUserGroups.add(group);
+                        Collections.sort(currentUserGroups,new GroupComparator(userInfo));
+                        userGroupRecycleViewAdapter.updateGroupsList(currentUserGroups);
+                        groupsSetOnClickListener();
                     }
-                }
-                userGroupRecycleViewAdapter.updateGroupsList(currentUserGroups);
-                groupsSetOnClickListener();
-            }
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(UserHomeScreen.this,error.toString(),Toast.LENGTH_SHORT).show();
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+
+                    }
+                });
+
             }
-        });
+        }
     }
     public void groupsSetOnClickListener(){
         userGroupRecycleViewAdapter.setOnItemClickListener(new UserGroupRecyclerViewAdapter.OnItemClickListener() {
@@ -323,6 +327,8 @@ public class UserHomeScreen extends AppCompatActivity {
                 userInfo = dataSnapshot.getValue(User.class);
                 TextView userEmailField = findViewById(R.id.userEmailField);
                 userEmailField.setText(userInfo.getEmail());
+                getUserGroups();
+                userGroupRecycleViewAdapter.updateUser(userInfo);
             }
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {

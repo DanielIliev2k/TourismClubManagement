@@ -5,7 +5,7 @@ import java.util.List;
 
 public class User implements Serializable {
     private String id;
-    private List<String> groups;
+    private List<UserGroup> groups;
     private String email;
     private String name;
     private Integer age;
@@ -27,7 +27,7 @@ public class User implements Serializable {
         this.id = id;
     }
 
-    public void setGroups(List<String> groups) {
+    public void setGroups(List<UserGroup> groups) {
         this.groups = groups;
     }
     public Boolean getFirstLogin() {
@@ -42,7 +42,7 @@ public class User implements Serializable {
         return id;
     }
 
-    public List<String> getGroups() {
+    public List<UserGroup> getGroups() {
         return groups;
     }
 

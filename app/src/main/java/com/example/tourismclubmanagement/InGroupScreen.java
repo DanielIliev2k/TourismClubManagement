@@ -34,6 +34,7 @@ import com.example.tourismclubmanagement.models.Group;
 import com.example.tourismclubmanagement.models.GroupInfo;
 import com.example.tourismclubmanagement.models.Role;
 import com.example.tourismclubmanagement.models.User;
+import com.example.tourismclubmanagement.models.UserGroup;
 import com.example.tourismclubmanagement.models.UserInGroupInfo;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -107,7 +108,6 @@ public class InGroupScreen extends AppCompatActivity{
         setContentView(R.layout.activity_in_group_screen);
         instantiate();
         getGroupFromDb(this.getIntent().getStringExtra("groupId"));
-        getLoggedInUserInfo(userAuth.getUid());
 
     }
     public void getLoggedInUserInfo(String userId){
@@ -155,6 +155,7 @@ public class InGroupScreen extends AppCompatActivity{
                 currentGroup.setEvents(events);
                 currentGroup.setUsersInGroup(usersInGroupList);
                 eventsDatasource = database.getReference("groups").child(currentGroup.getGroupInfo().getId()).child("events");
+                getLoggedInUserInfo(userAuth.getUid());
                 getUsersFromDb();
                 getImagesFromStorage();
                 getEventsFromDb();
@@ -244,8 +245,8 @@ public class InGroupScreen extends AppCompatActivity{
         AppCompatButton deleteEventButton = pagerAdapter.getPage(0).findViewById(R.id.deleteEventButton);
         AppCompatButton uploadImageButton = pagerAdapter.getPage(2).findViewById(R.id.uploadImageButton);
         ConstraintLayout eventsPageButtonsContainer = pagerAdapter.getPage(0).findViewById(R.id.eventsPageButtonsContainer);
-        ConstraintLayout membersPageButtonsContainer = pagerAdapter.getPage(0).findViewById(R.id.membersPageButtonsContainer);
-        ConstraintLayout photosPageButtonsContainer = pagerAdapter.getPage(0).findViewById(R.id.photosPageButtonsContainer);
+        ConstraintLayout membersPageButtonsContainer = pagerAdapter.getPage(1).findViewById(R.id.membersPageButtonsContainer);
+        ConstraintLayout photosPageButtonsContainer = pagerAdapter.getPage(2).findViewById(R.id.photosPageButtonsContainer);
         eventsPageButtonsContainer.setVisibility(View.VISIBLE);
         membersPageButtonsContainer.setVisibility(View.VISIBLE);
         photosPageButtonsContainer.setVisibility(View.VISIBLE);
@@ -346,6 +347,10 @@ public class InGroupScreen extends AppCompatActivity{
                 deleteEventButton.setBackgroundResource(R.drawable.button_background);
                 deleteUserButton.setBackgroundResource(R.drawable.button_background);
                 deleteImageButton.setBackgroundResource(R.drawable.button_background);
+                editEventMode = false;
+                deleteEventMode = false;
+                deleteUserMode = false;
+                deleteImageMode = false;
             }
 
             @Override
@@ -779,9 +784,9 @@ public class InGroupScreen extends AppCompatActivity{
             User user = getUserById(userId);
             if (user!=null){
                 if (checkIfUserIsInCurrentGroup(userId)){
-                    List<String> userGroups = user.getGroups();
-                    for (String userGroup:userGroups) {
-                        if (userGroup.equals(currentGroup.getGroupInfo().getId())){
+                    List<UserGroup> userGroups = user.getGroups();
+                    for (UserGroup userGroup:userGroups) {
+                        if (userGroup.getGroupId().equals(currentGroup.getGroupInfo().getId())){
                             userGroups.remove(userGroup);
                             break;
                         }
@@ -839,13 +844,13 @@ public class InGroupScreen extends AppCompatActivity{
                 User user = getUserIfEmailExists(newUserEmailField.getText().toString());
                 if (user!=null){
                     if (!checkIfUserIsInCurrentGroup(user.getId())){
-                        List<String> userGroups = user.getGroups();
+                        List<UserGroup> userGroups = user.getGroups();
                         if (userGroups != null){
-                            userGroups.add(currentGroup.getGroupInfo().getId());
+                            userGroups.add(new UserGroup(currentGroup.getGroupInfo().getId(),false));
                         }
                         else {
                             userGroups = new ArrayList<>();
-                            userGroups.add(currentGroup.getGroupInfo().getId());
+                            userGroups.add(new UserGroup(currentGroup.getGroupInfo().getId(),false));
                         }
                         usersDatasource.child(user.getId()).child("groups").setValue(userGroups);
                         List<UserInGroupInfo> usersInGroup = currentGroup.getUsersInGroup();

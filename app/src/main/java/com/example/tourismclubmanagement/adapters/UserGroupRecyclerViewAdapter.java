@@ -6,18 +6,26 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.widget.AppCompatButton;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.tourismclubmanagement.R;
 import com.example.tourismclubmanagement.models.Group;
 import com.example.tourismclubmanagement.models.GroupInfo;
+import com.example.tourismclubmanagement.models.User;
+import com.example.tourismclubmanagement.models.UserGroup;
+import com.google.firebase.auth.UserInfo;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.List;
 
 public class UserGroupRecyclerViewAdapter extends RecyclerView.Adapter<UserGroupRecyclerViewAdapter.ViewHolder> {
 
     private List<Group> groupsList;
+    private User user;
     private OnItemClickListener mListener;
+    private DatabaseReference usersDatasource;
     public interface OnItemClickListener {
         void onItemClick(String groupId);
 
@@ -25,15 +33,17 @@ public class UserGroupRecyclerViewAdapter extends RecyclerView.Adapter<UserGroup
     public void setOnItemClickListener(UserGroupRecyclerViewAdapter.OnItemClickListener listener) {
         mListener = listener;
     }
-
-    public UserGroupRecyclerViewAdapter(List<Group> groupsList) {
+    public UserGroupRecyclerViewAdapter(List<Group> groupsList,User user) {
         this.groupsList = groupsList;
+        this.user = user;
     }
 
     @NonNull
     @Override
     public UserGroupRecyclerViewAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.user_groups_list_item, parent, false);
+        FirebaseDatabase database = FirebaseDatabase.getInstance("https://tourismclubmanagement-default-rtdb.europe-west1.firebasedatabase.app/");
+        usersDatasource = database.getReference("users");
         return new ViewHolder(view);
     }
 
@@ -42,6 +52,34 @@ public class UserGroupRecyclerViewAdapter extends RecyclerView.Adapter<UserGroup
         Group group = groupsList.get(position);
         GroupInfo groupInfo = group.getGroupInfo();
         holder.groupNameField.setText( groupInfo.getGroupName());
+        UserGroup tempGroup = new UserGroup();
+        List<UserGroup> userGroups = user.getGroups();
+        for (UserGroup userGroup:userGroups) {
+            if (userGroup.getGroupId().equals(groupInfo.getId())){
+                tempGroup = userGroup;
+                if (userGroup.getFavourite()){
+                    holder.favouriteButton.setBackgroundResource(R.drawable.favourite_star_active);
+                }
+                else {
+                    holder.favouriteButton.setBackgroundResource(R.drawable.favourite_star_inactive);
+                }
+                break;
+            }
+        }
+        UserGroup finalTempGroup = tempGroup;
+        holder.favouriteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (finalTempGroup.getFavourite()){
+                    finalTempGroup.setFavourite(false);
+                }
+                else {
+                    finalTempGroup.setFavourite(true);
+                }
+                usersDatasource.child(user.getId()).child("groups").setValue(userGroups);
+
+            }
+        });
         holder.id = groupInfo.getId();
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -60,10 +98,12 @@ public class UserGroupRecyclerViewAdapter extends RecyclerView.Adapter<UserGroup
 
     public class ViewHolder extends RecyclerView.ViewHolder {
        TextView groupNameField;
+       AppCompatButton favouriteButton;
        String id;
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-           groupNameField = itemView.findViewById(R.id.groupNameField);
+            favouriteButton = itemView.findViewById(R.id.favouriteButton);
+            groupNameField = itemView.findViewById(R.id.groupNameField);
         }
 
     }
@@ -73,5 +113,8 @@ public class UserGroupRecyclerViewAdapter extends RecyclerView.Adapter<UserGroup
     }
     public List<Group> getGroupsList() {
         return groupsList;
+    }
+    public void updateUser(User user){
+        this.user = user;
     }
 }

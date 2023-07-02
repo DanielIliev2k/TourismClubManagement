@@ -46,7 +46,8 @@
             android:textAlignment="center"
             android:textColorHint="@color/LightGrey"
             android:maxLines="1"
-            android:maxLength="20"/>
+            android:maxLength="20"
+            android:inputType="textPassword"/>
 
         <TextView
             android:id="@+id/registerPasswordError"

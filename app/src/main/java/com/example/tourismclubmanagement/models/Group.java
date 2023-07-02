@@ -6,7 +6,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
-public class Group implements Serializable {
+public class Group implements Serializable, Comparable<Group> {
     private List<UserInGroupInfo> usersInGroup;
     private List<Event> events;
     private GroupInfo groupInfo;
@@ -42,5 +42,10 @@ public class Group implements Serializable {
 
     public void setEvents(List<Event> events) {
         this.events = events;
+    }
+
+    @Override
+    public int compareTo(Group group) {
+       return this.groupInfo.getGroupName().compareTo(group.groupInfo.getGroupName());
     }
 }
