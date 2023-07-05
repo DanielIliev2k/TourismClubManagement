@@ -516,7 +516,7 @@ public class InGroupScreen extends AppCompatActivity{
         sendMessageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (!chatMessageField.getText().toString().equals("")){
+                if (!Objects.requireNonNull(chatMessageField.getText()).toString().equals("")){
                     ChatMessage message = new ChatMessage();
                     Date date = new Date();
                     message.setDate(date);
