@@ -6,6 +6,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.appcompat.widget.AppCompatEditText;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager.widget.ViewPager;
 
 import android.app.Dialog;
@@ -25,10 +27,14 @@ import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.example.tourismclubmanagement.adapters.ChatRecyclerViewAdapter;
 import com.example.tourismclubmanagement.adapters.EventRecyclerViewAdapter;
 import com.example.tourismclubmanagement.adapters.ImageRecyclerViewAdapter;
 import com.example.tourismclubmanagement.adapters.MyPagerAdapter;
 import com.example.tourismclubmanagement.adapters.UsersRecyclerViewAdapter;
+import com.example.tourismclubmanagement.comparators.EventComparator;
+import com.example.tourismclubmanagement.comparators.UserComparator;
+import com.example.tourismclubmanagement.models.ChatMessage;
 import com.example.tourismclubmanagement.models.Event;
 import com.example.tourismclubmanagement.models.Group;
 import com.example.tourismclubmanagement.models.GroupInfo;
@@ -53,6 +59,7 @@ import com.google.firebase.storage.UploadTask;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -80,6 +87,7 @@ public class InGroupScreen extends AppCompatActivity{
     private Dialog userDetailsPopup;
     private Dialog eventDetailsPopup;
     private Dialog userRoleChangePopup;
+    private Dialog chatPopup;
     private Dialog imagePopup;
     private MyPagerAdapter pagerAdapter;
     private Group currentGroup;
@@ -97,6 +105,7 @@ public class InGroupScreen extends AppCompatActivity{
     private ViewPager viewPager;
     private StorageReference storageReference;
     private List<Uri> imagesToShow;
+    private List<ChatMessage> messages;
     private FirebaseUser userAuth;
     private List<User> allUsersList;
     private Role currentUserRole;
@@ -180,6 +189,7 @@ public class InGroupScreen extends AppCompatActivity{
                         eventsList.add(event);
                     }
                 }
+                Collections.sort(eventsList,new EventComparator());
                 pagerAdapter.updateEvents(eventsList);
 
             }
@@ -205,6 +215,7 @@ public class InGroupScreen extends AppCompatActivity{
                         }
                     }
                 }
+                Collections.sort(currentGroupUsersList,new UserComparator(usersInGroupList));
                 pagerAdapter.updateUsers(currentGroupUsersList);
             }
             @Override
@@ -445,13 +456,11 @@ public class InGroupScreen extends AppCompatActivity{
     }
     public void generateButtons(){
         AppCompatButton settingsButton = findViewById(R.id.settingsButton);
-        AppCompatButton logoutButton = findViewById(R.id.logoutButton);
-        logoutButton.setOnClickListener(new View.OnClickListener() {
+        AppCompatButton chatButton = findViewById(R.id.chatButton);
+        chatButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mAuth.signOut();
-                Intent loginIntent = new Intent(InGroupScreen.this,LoginScreen.class);
-                startActivity(loginIntent);
+                showChatPopup();
             }
         });
         settingsButton.setOnClickListener(new View.OnClickListener() {
@@ -462,6 +471,70 @@ public class InGroupScreen extends AppCompatActivity{
             }
         });
     }
+
+    private void showChatPopup() {
+        messages = new ArrayList<>();
+        chatPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        chatPopup.setCancelable(true);
+        chatPopup.setContentView(R.layout.chat_popup);
+        int width = (int) (getResources().getDisplayMetrics().widthPixels);
+        int height = (int) (getResources().getDisplayMetrics().heightPixels);
+        chatPopup.getWindow().setLayout(width,height);
+        RecyclerView chatRecyclerView = chatPopup.findViewById(R.id.chatRecyclerView);
+        DatabaseReference chatReference = groupsDatasource.child(currentGroup.getGroupInfo().getId()).child("chat");
+        ChatRecyclerViewAdapter chatRecyclerViewAdapter = new ChatRecyclerViewAdapter(messages);
+        chatRecyclerView.setLayoutManager(new LinearLayoutManager(InGroupScreen.this));
+        chatRecyclerView.setAdapter(chatRecyclerViewAdapter);
+        chatReference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                messages.clear();
+                for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
+                    messages.add(dataSnapshot.getValue(ChatMessage.class));
+                }
+
+                chatRecyclerViewAdapter.updateMessages(messages);
+                chatRecyclerView.scrollToPosition(messages.size());
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+
+            }
+        });
+        AppCompatButton cancelPopupButton = chatPopup.findViewById(R.id.cancelPopupButton);
+        cancelPopupButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                chatPopup.cancel();
+            }
+        });
+        AppCompatButton sendMessageButton = chatPopup.findViewById(R.id.sendMessageButton);
+        AppCompatEditText chatMessageField = chatPopup.findViewById(R.id.chatMessageField);
+
+        chatPopup.show();
+        sendMessageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (!chatMessageField.getText().toString().equals("")){
+                    ChatMessage message = new ChatMessage();
+                    Date date = new Date();
+                    message.setDate(date);
+                    message.setSender(userInfo.getName());
+                    message.setMessage(chatMessageField.getText().toString());
+                    chatMessageField.setText("");
+                    chatReference.child(date.toString()).setValue(message);
+                }
+            }
+        });
+        chatPopup.setOnCancelListener(new DialogInterface.OnCancelListener() {
+            @Override
+            public void onCancel(DialogInterface dialog) {
+                chatPopup = new Dialog(InGroupScreen.this);
+            }
+        });
+    }
+
     public void choosePictureToUpload(){
         Intent intent = new Intent();
         intent.setType("image/*");
@@ -683,6 +756,7 @@ public class InGroupScreen extends AppCompatActivity{
         deleteUserPopup = new Dialog(InGroupScreen.this);
         deleteEventPopup = new Dialog(InGroupScreen.this);
         userRoleChangePopup = new Dialog(InGroupScreen.this);
+        chatPopup = new Dialog(InGroupScreen.this);
         imagePopup = new Dialog(InGroupScreen.this);
         eventsList = new ArrayList<>();
         allUsersList = new ArrayList<>();

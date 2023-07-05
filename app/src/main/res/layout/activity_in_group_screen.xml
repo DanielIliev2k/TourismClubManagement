@@ -22,7 +22,7 @@
               <androidx.appcompat.widget.AppCompatButton
                   android:layout_width="40dp"
                   android:layout_height="40dp"
-                  android:id="@+id/logoutButton"
+                  android:id="@+id/chatButton"
                   android:background="@drawable/ic_logout"
                   android:layout_gravity="start"/>
                      <TextView
@@ -47,6 +47,13 @@
                   android:id="@+id/view_pager"
                   android:layout_width="match_parent"
                   android:layout_height="match_parent" />
+              <androidx.appcompat.widget.Toolbar
+                  android:layout_width="match_parent"
+                  android:layout_height="wrap_content"
+                  android:background="@drawable/menu_bar_background"
+                  android:layout_gravity="center">
+
+              </androidx.appcompat.widget.Toolbar>
               </androidx.appcompat.widget.LinearLayoutCompat>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
