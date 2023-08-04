@@ -12,6 +12,7 @@ import com.example.tourismclubmanagement.R;
 import com.example.tourismclubmanagement.models.Role;
 import com.example.tourismclubmanagement.models.User;
 import com.example.tourismclubmanagement.models.UserInGroupInfo;
+import com.example.tourismclubmanagement.models.UserInfo;
 
 import java.util.List;
 
@@ -41,14 +42,14 @@ public class UsersRecyclerViewAdapter extends RecyclerView.Adapter<UsersRecycler
 
     @Override
     public void onBindViewHolder(@NonNull UsersRecyclerViewAdapter.ViewHolder holder, int position) {
-        User user = usersList.get(position);
-        holder.id = user.getId();
-        if (!user.getFirstLogin()){
-            holder.name.setText(user.getName());
-            holder.age.setText(user.getAge().toString());
-            holder.hometown.setText(user.getHometown());
+        UserInfo userInfo = usersList.get(position).getUserInfo();
+        holder.id = userInfo.getId();
+        if (!userInfo.getFirstLogin()){
+            holder.name.setText(userInfo.getName());
+            holder.age.setText(userInfo.getAge().toString());
+            holder.hometown.setText(userInfo.getHometown());
             for (UserInGroupInfo userInGroup:usersInGroupList) {
-                if (userInGroup.getId().equals(user.getId())){
+                if (userInGroup.getId().equals(userInfo.getId())){
                     if (userInGroup.getRole().equals(Role.OWNER)){
                         holder.itemView.setBackgroundResource(R.drawable.owner_item_background);
                     } else if (userInGroup.getRole().equals(Role.ADMIN)){

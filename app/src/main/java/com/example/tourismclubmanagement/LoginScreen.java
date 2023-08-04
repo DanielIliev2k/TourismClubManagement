@@ -13,6 +13,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.tourismclubmanagement.models.User;
+import com.example.tourismclubmanagement.models.UserInfo;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.textfield.TextInputEditText;
@@ -31,7 +32,7 @@ public class LoginScreen extends AppCompatActivity {
 
     private DatabaseReference usersDatasource;
     private FirebaseAuth mAuth;
-    private User userInfo;
+    private UserInfo userInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,10 +98,10 @@ public class LoginScreen extends AppCompatActivity {
         }
     }
     public void getUserInfoFromDb(String userId){
-        usersDatasource.child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
+        usersDatasource.child(userId).child("userInfo").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                userInfo = snapshot.getValue(User.class);
+                userInfo = snapshot.getValue(UserInfo.class);
                 Intent loginIntent = new Intent(LoginScreen.this, UserHomeScreen.class);
                 if (userInfo.getFirstLogin()){
                     loginIntent = new Intent(LoginScreen.this, UserEditInfoScreen.class);

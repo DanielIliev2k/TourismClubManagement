@@ -15,18 +15,18 @@ public class UserComparator implements Comparator<User> {
 
     @Override
     public int compare(User user1, User user2) {
-        if (getUserRole(user1.getId())>getUserRole(user2.getId())){
+        if (getUserRole(user1.getUserInfo().getId())>getUserRole(user2.getUserInfo().getId())){
             return -1;
         }
-        else if (getUserRole(user1.getId())==getUserRole(user2.getId())){
+        else if (getUserRole(user1.getUserInfo().getId())==getUserRole(user2.getUserInfo().getId())){
             return 0;
         }
-        if (getUserRole(user1.getId())<getUserRole(user2.getId())){
+        if (getUserRole(user1.getUserInfo().getId())<getUserRole(user2.getUserInfo().getId())){
             return 1;
         }
 
-        String name1 = user1.getName();
-        String name2 = user2.getName();
+        String name1 = user1.getUserInfo().getName();
+        String name2 = user2.getUserInfo().getName();
 
         return name1.compareToIgnoreCase(name2);
     }

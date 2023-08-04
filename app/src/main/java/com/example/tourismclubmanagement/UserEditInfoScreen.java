@@ -10,7 +10,10 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.tourismclubmanagement.models.Group;
 import com.example.tourismclubmanagement.models.User;
+import com.example.tourismclubmanagement.models.UserGroup;
+import com.example.tourismclubmanagement.models.UserInfo;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.textfield.TextInputEditText;
@@ -22,10 +25,13 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class UserEditInfoScreen extends AppCompatActivity {
     private Intent mainScreenIntent;
     private FirebaseUser userAuth;
-    private User userInfo;
+    private User user;
     private AppCompatButton saveUserInfoButton;
     private TextInputEditText userOwnNameField;
     private TextInputEditText userAgeField;
@@ -47,14 +53,14 @@ public class UserEditInfoScreen extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         if (userAuth!=null){
-            getUserInfoFromDb(userAuth.getUid());
+            getUserFromDb(userAuth.getUid());
         }
     }
 
     public void getInfoFromFields(){
-        userInfo.setName(userOwnNameField.getText().toString());
-        userInfo.setAge(Integer.parseInt(userAgeField.getText().toString()));
-        userInfo.setHometown(userHometownField.getText().toString());
+        user.getUserInfo().setName(userOwnNameField.getText().toString());
+        user.getUserInfo().setAge(Integer.parseInt(userAgeField.getText().toString()));
+        user.getUserInfo().setHometown(userHometownField.getText().toString());
     }
     public void instantiate(){
         mAuth = FirebaseAuth.getInstance();
@@ -79,18 +85,21 @@ public class UserEditInfoScreen extends AppCompatActivity {
             }
         });
     }
-    public void getUserInfoFromDb(String userId){
-        usersDatasource.addValueEventListener(new ValueEventListener() {
+    public void getUserFromDb(String userId){
+        usersDatasource.child(userId).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    if (snapshot.getKey().equals(userId)){
-                        userInfo = snapshot.getValue(User.class);
-                        if (!userInfo.getFirstLogin()){
-                            populateFields();
-                        }
-                        break;
-                    }
+                user = new User();
+                UserInfo userInfo = dataSnapshot.child("userInfo").getValue(UserInfo.class);
+                List<UserGroup> groups = new ArrayList<>();
+                for (DataSnapshot snapshot:dataSnapshot.child("groups").getChildren()) {
+                    groups.add(snapshot.getValue(UserGroup.class));
+                }
+                user.setUserInfo(userInfo);
+                user.setGroups(groups);
+                assert userInfo != null;
+                if (!userInfo.getFirstLogin()){
+                    populateFields();
                 }
             }
             @Override
@@ -100,18 +109,18 @@ public class UserEditInfoScreen extends AppCompatActivity {
         });
     }
     public void populateFields(){
-        userOwnNameField.setText(userInfo.getName());
-        userAgeField.setText(userInfo.getAge().toString());
-        userHometownField.setText(userInfo.getHometown());
-        currentUserEmail.setText(userInfo.getEmail());
+        userOwnNameField.setText(user.getUserInfo().getName());
+        userAgeField.setText(user.getUserInfo().getAge().toString());
+        userHometownField.setText(user.getUserInfo().getHometown());
+        currentUserEmail.setText(user.getUserInfo().getEmail());
     }
     public void setOnClickListeners(){
         saveUserInfoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 getInfoFromFields();
-                if (userInfo.getFirstLogin()){
-                    userInfo.setFirstLogin(false);
+                if (user.getUserInfo().getFirstLogin()){
+                    user.getUserInfo().setFirstLogin(false);
                     pushUserToDb();
                     login();
                 }
@@ -122,7 +131,7 @@ public class UserEditInfoScreen extends AppCompatActivity {
         });
     }
     public void pushUserToDb(){
-        usersDatasource.child(userInfo.getId()).setValue(userInfo).addOnSuccessListener(new OnSuccessListener<Void>() {
+        usersDatasource.child(user.getUserInfo().getId()).setValue(user).addOnSuccessListener(new OnSuccessListener<Void>() {
             @Override
             public void onSuccess(Void unused) {
                 Toast.makeText(UserEditInfoScreen.this,"Saved!", Toast.LENGTH_SHORT).show();

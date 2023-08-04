@@ -5,15 +5,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/event_item_background">
-
-
     <RelativeLayout
         android:id="@+id/relativeLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        android:translationZ="1dp">
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/cancelPopupButton"
@@ -113,6 +112,12 @@
                 android:layout_height="wrap_content"
                 android:layout_margin="10dp"
                 android:maxLines="1" />
+            <CheckBox
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Allow Participation"
+                android:textColor="@color/black"
+                android:id="@+id/participationCheck"/>
             <DatePicker
                 android:id="@+id/eventDatePicker"
                 android:layout_width="wrap_content"

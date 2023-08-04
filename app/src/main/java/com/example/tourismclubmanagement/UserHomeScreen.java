@@ -18,6 +18,7 @@ import android.widget.Toast;
 
 import com.example.tourismclubmanagement.adapters.UserGroupRecyclerViewAdapter;
 import com.example.tourismclubmanagement.comparators.GroupComparator;
+import com.example.tourismclubmanagement.models.ChatMessage;
 import com.example.tourismclubmanagement.models.Event;
 import com.example.tourismclubmanagement.models.Group;
 import com.example.tourismclubmanagement.models.GroupInfo;
@@ -25,7 +26,7 @@ import com.example.tourismclubmanagement.models.Role;
 import com.example.tourismclubmanagement.models.User;
 import com.example.tourismclubmanagement.models.UserGroup;
 import com.example.tourismclubmanagement.models.UserInGroupInfo;
-import com.google.android.gms.tasks.OnSuccessListener;
+import com.example.tourismclubmanagement.models.UserInfo;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -33,9 +34,6 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.ListResult;
-import com.google.firebase.storage.StorageReference;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -46,14 +44,11 @@ import java.util.Objects;
 public class UserHomeScreen extends AppCompatActivity {
     private FirebaseUser userAuth;
     private  FirebaseAuth mAuth;
-    private User userInfo;
-    private StorageReference storageReference;
+    private User user;
     private DatabaseReference usersDatasource;
     private DatabaseReference groupsDatasource;
     private List<Group> currentUserGroups;
     private Dialog newGroupNamePopup;
-    private Dialog deleteGroupPopup;
-    private Boolean deleteGroupMode;
     private UserGroupRecyclerViewAdapter userGroupRecycleViewAdapter;
 
     @Override
@@ -69,7 +64,7 @@ public class UserHomeScreen extends AppCompatActivity {
         RecyclerView userGroupsContainer;
         userGroupsContainer = findViewById(R.id.userGroupsContainer);
         userGroupsContainer.setLayoutManager(new LinearLayoutManager(this));
-        userGroupRecycleViewAdapter = new UserGroupRecyclerViewAdapter(currentUserGroups,userInfo);
+        userGroupRecycleViewAdapter = new UserGroupRecyclerViewAdapter(currentUserGroups, user);
         userGroupsContainer.setAdapter(userGroupRecycleViewAdapter);
     }
     public void showCreateGroupPopup() {
@@ -106,7 +101,6 @@ public class UserHomeScreen extends AppCompatActivity {
 
         AppCompatButton createNewGroupButton = findViewById(R.id.createNewGroupButton);
         AppCompatButton settingsButton = findViewById(R.id.settingsButton);
-        AppCompatButton deleteGroupButton = findViewById(R.id.deleteGroupButton);
         AppCompatButton logoutButton = findViewById(R.id.logoutButton);
         logoutButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -114,18 +108,6 @@ public class UserHomeScreen extends AppCompatActivity {
                 mAuth.signOut();
                 Intent loginIntent = new Intent(UserHomeScreen.this,LoginScreen.class);
                 startActivity(loginIntent);
-            }
-        });
-        deleteGroupButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (deleteGroupMode){
-                    deleteGroupButton.setBackgroundResource(R.drawable.button_background);
-                }
-                else {
-                    deleteGroupButton.setBackgroundResource(R.drawable.delete_button_background);
-                }
-                deleteGroupMode=!deleteGroupMode;
             }
         });
         settingsButton.setOnClickListener(new View.OnClickListener() {
@@ -138,94 +120,7 @@ public class UserHomeScreen extends AppCompatActivity {
         createNewGroupButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                deleteGroupButton.setBackgroundResource(R.drawable.button_background);
                 showCreateGroupPopup();
-            }
-        });
-
-    }
-
-    private void showDeleteGroupPopup(String groupId) {
-        deleteGroupPopup = new Dialog(UserHomeScreen.this);
-        deleteGroupPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        deleteGroupPopup.setCancelable(true);
-        deleteGroupPopup.setContentView(R.layout.delete_group_popup);
-        int width = (int) (getResources().getDisplayMetrics().widthPixels);
-        int height = deleteGroupPopup.getWindow().getAttributes().height;
-        deleteGroupPopup.getWindow().setLayout(width,height);
-        deleteGroupPopup.setOnCancelListener(new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialog) {
-                deleteGroupPopup = new Dialog(UserHomeScreen.this);
-            }
-        });
-        AppCompatButton cancelPopupButton = deleteGroupPopup.findViewById(R.id.cancelPopupButton);
-        cancelPopupButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                deleteGroupPopup.cancel();
-            }
-        });
-        Group group = new Group();
-        for (Group tempGroup:currentUserGroups) {
-            if (tempGroup.getGroupInfo().getId().equals(groupId)){
-                group = tempGroup;
-                break;
-            }
-        }
-        deleteGroupPopup.show();
-        TextView deleteGroupConfirmationText = deleteGroupPopup.findViewById(R.id.deleteGroupConfirmationText);
-        AppCompatButton deleteGroupConfirmationButton = deleteGroupPopup.findViewById(R.id.deleteGroupConfirmationButton);
-        deleteGroupConfirmationText.setText("Are you sure you want to delete group " + group.getGroupInfo().getGroupName() + " ? This will delete all group data!");
-        Group finalGroup = group;
-        deleteGroupConfirmationButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                deleteGroup(finalGroup);
-                deleteGroupPopup.cancel();
-            }
-        });
-    }
-
-    private void deleteGroup(Group group) {
-
-        usersDatasource.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                List<User> users = new ArrayList<>();
-                    for (UserInGroupInfo userInGroup:group.getUsersInGroup()) {
-                        for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
-                            User user = dataSnapshot.getValue(User.class);
-                            if (userInGroup.getId().equals(user.getId())){
-                                users.add(user);
-                            }
-                        }
-                    }
-                for (User user:users) {
-                    List<UserGroup> userGroups = user.getGroups();
-                    for (UserGroup userGroup:userGroups) {
-                        if (userGroup.getGroupId().equals(group.getGroupInfo().getId())){
-                            userGroups.remove(userGroup);
-                            break;
-                        }
-                    }
-                    user.setGroups(userGroups);
-                    usersDatasource.child(user.getId()).child("groups").setValue(userGroups);
-                }
-                storageReference.child(group.getGroupInfo().getId()).listAll().addOnSuccessListener(new OnSuccessListener<ListResult>() {
-                    @Override
-                    public void onSuccess(ListResult listResult) {
-                        for (StorageReference item:listResult.getItems()) {
-                            item.delete();
-                        }
-                    }
-                });
-                groupsDatasource.child(group.getGroupInfo().getId()).removeValue();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(UserHomeScreen.this,"Connection Error",Toast.LENGTH_LONG).show();
             }
         });
 
@@ -239,17 +134,10 @@ public class UserHomeScreen extends AppCompatActivity {
             Group group = new Group();
             String groupId = groupsDatasource.push().getKey();
             group.setGroupInfo(new GroupInfo(groupId,newGroupNameField.getText().toString(),new Date()));
-            List<UserInGroupInfo> usersInGroup = new ArrayList<>();
-            usersInGroup.add(new UserInGroupInfo(userInfo.getId(), Role.OWNER));
-            group.setUsersInGroup(usersInGroup);
-            List<UserGroup> userGroups = new ArrayList<>();
-            if (userInfo.getGroups()!=null){
-                userGroups = userInfo.getGroups();
-            }
-            userGroups.add(new UserGroup(group.getGroupInfo().getId(),false));
-            userInfo.setGroups(userGroups);
+            assert groupId != null;
             groupsDatasource.child(groupId).setValue(group);
-            usersDatasource.child(userInfo.getId()).setValue(userInfo);
+            groupsDatasource.child(groupId).child("usersInGroup").child(user.getUserInfo().getId()).setValue(new UserInGroupInfo(user.getUserInfo().getId(), Role.OWNER));
+            usersDatasource.child(user.getUserInfo().getId()).child("groups").child(groupId).setValue(new UserGroup(group.getGroupInfo().getId(),false));
             newGroupNamePopup.cancel();
         }
         if ((Objects.requireNonNull(newGroupNameField.getText()).toString().equals(""))) {
@@ -258,28 +146,38 @@ public class UserHomeScreen extends AppCompatActivity {
         }
     }
     public void getUserGroups() {
-        if (userInfo.getGroups()!=null){
-            currentUserGroups.clear();
-            for (UserGroup userGroup:userInfo.getGroups()) {
-                groupsDatasource.child(userGroup.getGroupId()).addListenerForSingleValueEvent(new ValueEventListener() {
+                groupsDatasource.addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        Group group = new Group();
-                        List<Event> events = new ArrayList<>();
-                        for (DataSnapshot eventsData:snapshot.child("events").getChildren()) {
-                            events.add(eventsData.getValue(Event.class));
+                        if (user.getGroups()!=null){
+                            currentUserGroups.clear();
+                            for (UserGroup userGroup: user.getGroups()) {
+                                for (DataSnapshot dataSnapshot:snapshot.getChildren()){
+                                    GroupInfo groupInfo = dataSnapshot.child("groupInfo").getValue(GroupInfo.class);
+                                    if (groupInfo.getId().equals(userGroup.getGroupId())){
+                                        Group group = new Group();
+                                        group.setGroupInfo(groupInfo);
+                                        List<Event> events = new ArrayList<>();
+                                        List<ChatMessage> chatMessages = new ArrayList<>();
+                                        group.setEvents(events);
+                                        List<UserInGroupInfo> usersInGroup = new ArrayList<>();
+                                        for (DataSnapshot userInGroupData:snapshot.child("usersInGroup").getChildren()) {
+                                            usersInGroup.add(userInGroupData.getValue(UserInGroupInfo.class));
+                                        }
+                                        for (DataSnapshot chatMessage:snapshot.child("chat").getChildren()){
+                                            chatMessages.add(chatMessage.getValue(ChatMessage.class));
+                                        }
+                                        group.setUsersInGroup(usersInGroup);
+                                        group.setChat(chatMessages);
+                                        currentUserGroups.add(group);
+                                        currentUserGroups.sort(new GroupComparator(user));
+                                        userGroupRecycleViewAdapter.updateGroupsList(currentUserGroups);
+                                        groupsSetOnClickListener();
+                                        break;
+                                    }
+                                }
+                            }
                         }
-                        group.setEvents(events);
-                        group.setGroupInfo(snapshot.child("groupInfo").getValue(GroupInfo.class));
-                        List<UserInGroupInfo> usersInGroup = new ArrayList<>();
-                        for (DataSnapshot userInGroupData:snapshot.child("usersInGroup").getChildren()) {
-                            usersInGroup.add(userInGroupData.getValue(UserInGroupInfo.class));
-                        }
-                        group.setUsersInGroup(usersInGroup);
-                        currentUserGroups.add(group);
-                        Collections.sort(currentUserGroups,new GroupComparator(userInfo));
-                        userGroupRecycleViewAdapter.updateGroupsList(currentUserGroups);
-                        groupsSetOnClickListener();
                     }
 
                     @Override
@@ -287,22 +185,14 @@ public class UserHomeScreen extends AppCompatActivity {
 
                     }
                 });
-
-            }
-        }
     }
     public void groupsSetOnClickListener(){
         userGroupRecycleViewAdapter.setOnItemClickListener(new UserGroupRecyclerViewAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(String groupId) {
-                if (deleteGroupMode){
-                    showDeleteGroupPopup(groupId);
-                }
-                else {
-                    Intent inGroupScreenIntent = new Intent(UserHomeScreen.this,InGroupScreen.class);
-                    inGroupScreenIntent.putExtra("groupId",groupId);
-                    startActivity(inGroupScreenIntent);
-                }
+                Intent inGroupScreenIntent = new Intent(UserHomeScreen.this,InGroupScreen.class);
+                inGroupScreenIntent.putExtra("groupId",groupId);
+                startActivity(inGroupScreenIntent);
             }
         });
     }
@@ -313,22 +203,25 @@ public class UserHomeScreen extends AppCompatActivity {
         FirebaseDatabase database = FirebaseDatabase.getInstance("https://tourismclubmanagement-default-rtdb.europe-west1.firebasedatabase.app/");
         usersDatasource = database.getReference("users");
         groupsDatasource = database.getReference("groups");
-        FirebaseStorage firebaseStorage = FirebaseStorage.getInstance();
-        storageReference = firebaseStorage.getReference();
         currentUserGroups = new ArrayList<>();
-        deleteGroupPopup = new Dialog(UserHomeScreen.this);
-        deleteGroupMode = false;
         generateButtons();
     }
     public void getLoggedInUserInfo(String userId){
         usersDatasource.child(userId).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                userInfo = dataSnapshot.getValue(User.class);
+                user = new User();
+                UserInfo userInfo = dataSnapshot.child("userInfo").getValue(UserInfo.class);
+                List<UserGroup> groups = new ArrayList<>();
+                for (DataSnapshot snapshot:dataSnapshot.child("groups").getChildren()) {
+                    groups.add(snapshot.getValue(UserGroup.class));
+                }
+                user.setUserInfo(userInfo);
+                user.setGroups(groups);
                 TextView userEmailField = findViewById(R.id.userEmailField);
-                userEmailField.setText(userInfo.getEmail());
+                userEmailField.setText(user.getUserInfo().getEmail());
                 getUserGroups();
-                userGroupRecycleViewAdapter.updateUser(userInfo);
+                userGroupRecycleViewAdapter.updateUser(user);
             }
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {

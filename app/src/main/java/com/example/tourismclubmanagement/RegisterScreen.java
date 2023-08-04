@@ -15,6 +15,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.tourismclubmanagement.models.User;
+import com.example.tourismclubmanagement.models.UserInfo;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.textfield.TextInputEditText;
@@ -64,11 +65,13 @@ public class RegisterScreen extends AppCompatActivity {
                     public void onComplete(@NonNull Task<AuthResult> task) {
                         if (task.isSuccessful()) {
                             FirebaseUser userAuth = mAuth.getCurrentUser();
-                            User userInfo = new User();
+                            User user = new User();
+                            UserInfo userInfo = new UserInfo();
                             userInfo.setId(userAuth.getUid());
                             userInfo.setEmail(userAuth.getEmail());
                             userInfo.setFirstLogin(true);
-                            usersReference.child(userInfo.getId()).setValue(userInfo);
+                            user.setUserInfo(userInfo);
+                            usersReference.child(user.getUserInfo().getId()).setValue(user);
                             Toast.makeText(RegisterScreen.this, userAuth.getEmail(),
                                     Toast.LENGTH_LONG).show();
                             Intent firstLoginScreen = new Intent(RegisterScreen.this, UserEditInfoScreen.class);

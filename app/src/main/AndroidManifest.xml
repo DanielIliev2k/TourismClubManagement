@@ -12,13 +12,16 @@
         android:theme="@style/Theme.TourismClubManagement"
         tools:targetApi="31">
         <activity
+            android:name=".GroupEditInfoScreen"
+            android:exported="false" />
+        <activity
             android:name=".RegisterScreen"
             android:exported="false"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".UserHomeScreen"
             android:exported="false"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait" />
         <activity
             android:name=".UserEditInfoScreen"
             android:exported="false"
@@ -36,7 +39,7 @@
         <activity
             android:name=".InGroupScreen"
             android:exported="true"
-            android:screenOrientation="portrait"/>
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>

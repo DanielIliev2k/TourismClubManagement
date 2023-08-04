@@ -126,6 +126,24 @@
                 android:layout_marginHorizontal="10dp"
                 android:layout_marginBottom="10dp"
                 android:textColor="@color/MardiGras" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/participationStatusField"
+                android:layout_margin="10dp"/>
+            <androidx.appcompat.widget.AppCompatButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/participationButton"
+                android:background="@drawable/button_background"
+                android:layout_margin="10dp"/>
+            <androidx.appcompat.widget.AppCompatButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/showParticipantsButton"
+                android:text="Show Participants"
+                android:background="@drawable/button_background"
+                android:layout_margin="10dp"/>
 
 
         </androidx.appcompat.widget.LinearLayoutCompat>

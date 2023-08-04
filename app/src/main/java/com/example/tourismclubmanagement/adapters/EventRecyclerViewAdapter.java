@@ -10,10 +10,12 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.tourismclubmanagement.R;
 import com.example.tourismclubmanagement.models.Event;
+import com.example.tourismclubmanagement.models.EventInfo;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecyclerViewAdapter.ViewHolder> {
 
@@ -40,13 +42,13 @@ public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecycler
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        Event event = eventsList.get(position);
-        holder.eventName.setText(event.getEventName());
-        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
-        String date = sdf.format(event.getDepartureTime());
+        EventInfo eventInfo= eventsList.get(position).getEventInfo();
+        holder.eventName.setText(eventInfo.getEventName());
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH);
+        String date = sdf.format(eventInfo.getDepartureTime());
         holder.departureTime.setText(date);
         holder.itemView.getLayoutParams().height = 300;
-        holder.id = event.getId();
+        holder.id = eventInfo.getId();
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

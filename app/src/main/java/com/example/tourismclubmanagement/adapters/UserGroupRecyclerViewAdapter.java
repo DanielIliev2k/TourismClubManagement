@@ -10,11 +10,12 @@ import androidx.appcompat.widget.AppCompatButton;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.tourismclubmanagement.R;
+import com.example.tourismclubmanagement.models.ChatMessage;
 import com.example.tourismclubmanagement.models.Group;
 import com.example.tourismclubmanagement.models.GroupInfo;
 import com.example.tourismclubmanagement.models.User;
 import com.example.tourismclubmanagement.models.UserGroup;
-import com.google.firebase.auth.UserInfo;
+import com.example.tourismclubmanagement.models.UserInGroupInfo;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
@@ -72,11 +73,12 @@ public class UserGroupRecyclerViewAdapter extends RecyclerView.Adapter<UserGroup
             public void onClick(View v) {
                 if (finalTempGroup.getFavourite()){
                     finalTempGroup.setFavourite(false);
+                    usersDatasource.child(user.getUserInfo().getId()).child("groups").child(groupInfo.getId()).child("favourite").setValue(false);
                 }
                 else {
                     finalTempGroup.setFavourite(true);
+                    usersDatasource.child(user.getUserInfo().getId()).child("groups").child(groupInfo.getId()).child("favourite").setValue(true);
                 }
-                usersDatasource.child(user.getId()).child("groups").setValue(userGroups);
 
             }
         });
@@ -89,6 +91,24 @@ public class UserGroupRecyclerViewAdapter extends RecyclerView.Adapter<UserGroup
                 }
             }
         });
+        for (UserInGroupInfo userInGroup : group.getUsersInGroup()) {
+            if (userInGroup.getId().equals(user.getUserInfo().getId())){
+                List<ChatMessage> chatMessages = group.getChat();
+                if (!chatMessages.isEmpty()){
+                    if (userInGroup.getLastLogin().before(chatMessages.get(chatMessages.size()-1).getDate())){
+                        holder.itemView.setBackgroundResource(R.drawable.admin_item_background);
+                    }
+                    else {
+                        holder.itemView.setBackgroundResource(R.drawable.groups_item_background);
+                    }
+                }
+                else {
+                    holder.itemView.setBackgroundResource(R.drawable.groups_item_background);
+                }
+                break;
+            }
+
+        }
     }
 
     @Override

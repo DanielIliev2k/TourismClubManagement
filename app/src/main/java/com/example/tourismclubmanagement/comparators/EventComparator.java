@@ -12,8 +12,8 @@ public class EventComparator implements Comparator<Event> {
     public int compare(Event event1, Event event2) {
 
 
-        String date1 = event1.getDepartureTime().toString();
-        String date2 = event2.getDepartureTime().toString();
+        String date1 = event1.getEventInfo().getDepartureTime().toString();
+        String date2 = event2.getEventInfo().getDepartureTime().toString();
 
         return date2.compareToIgnoreCase(date1);
     }

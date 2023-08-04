@@ -28,7 +28,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:id="@+id/logoutButton"
-                android:background="@drawable/ic_logout"
+                android:background="@drawable/home_button"
                 android:layout_gravity="start"/>
             <TextView
                 android:layout_width="wrap_content"
