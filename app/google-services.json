@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "915041557680",
+    "project_id": "tourismclubmanagement",
+    "storage_bucket": "tourismclubmanagement.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:915041557680:android:cbd6d5de5920b2acbb2f75",
+        "android_client_info": {
+          "package_name": "com.example.tourismclubmanagement"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "915041557680-2beb3th8gjrptg175dr5utt568ol64nd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgARA9wKDN-nyZ2zvXyHtBPlJsF38YCYc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "915041557680-2beb3th8gjrptg175dr5utt568ol64nd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
