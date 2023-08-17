@@ -1,6 +1,5 @@
 package com.example.tourismclubmanagement;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.appcompat.widget.AppCompatEditText;
@@ -8,36 +7,26 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.app.Dialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.tourismclubmanagement.adapters.UserGroupRecyclerViewAdapter;
-import com.example.tourismclubmanagement.comparators.GroupComparator;
-import com.example.tourismclubmanagement.models.ChatMessage;
-import com.example.tourismclubmanagement.models.Event;
-import com.example.tourismclubmanagement.models.Group;
-import com.example.tourismclubmanagement.models.GroupInfo;
-import com.example.tourismclubmanagement.models.Role;
+import com.example.tourismclubmanagement.comparators.UserGroupComparator;
+import com.example.tourismclubmanagement.listeners.GroupListener;
+import com.example.tourismclubmanagement.listeners.UserListener;
 import com.example.tourismclubmanagement.models.User;
-import com.example.tourismclubmanagement.models.UserGroup;
-import com.example.tourismclubmanagement.models.UserInGroupInfo;
-import com.example.tourismclubmanagement.models.UserInfo;
+import com.example.tourismclubmanagement.repositories.GroupRepository;
+import com.example.tourismclubmanagement.repositories.UserRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -45,11 +34,11 @@ public class UserHomeScreen extends AppCompatActivity {
     private FirebaseUser userAuth;
     private  FirebaseAuth mAuth;
     private User user;
-    private DatabaseReference usersDatasource;
-    private DatabaseReference groupsDatasource;
-    private List<Group> currentUserGroups;
     private Dialog newGroupNamePopup;
     private UserGroupRecyclerViewAdapter userGroupRecycleViewAdapter;
+    private UserRepository userRepository;
+    private GroupRepository groupRepository;
+    private Boolean firstUserPull;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,14 +46,12 @@ public class UserHomeScreen extends AppCompatActivity {
         setContentView(R.layout.activity_user_home_screen);
         instantiate();
         getLoggedInUserInfo(userAuth.getUid());
-        displayUserGroups();
     }
 
     public void displayUserGroups() {
-        RecyclerView userGroupsContainer;
-        userGroupsContainer = findViewById(R.id.userGroupsContainer);
+        RecyclerView userGroupsContainer = findViewById(R.id.userGroupsContainer);
         userGroupsContainer.setLayoutManager(new LinearLayoutManager(this));
-        userGroupRecycleViewAdapter = new UserGroupRecyclerViewAdapter(currentUserGroups, user);
+        userGroupRecycleViewAdapter = new UserGroupRecyclerViewAdapter( user,userRepository,groupRepository);
         userGroupsContainer.setAdapter(userGroupRecycleViewAdapter);
     }
     public void showCreateGroupPopup() {
@@ -75,12 +62,6 @@ public class UserHomeScreen extends AppCompatActivity {
         int width = (int) (getResources().getDisplayMetrics().widthPixels);
         int height = newGroupNamePopup.getWindow().getAttributes().height;
         newGroupNamePopup.getWindow().setLayout(width,height);
-        newGroupNamePopup.setOnCancelListener(new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialog) {
-                newGroupNamePopup = new Dialog(UserHomeScreen.this);
-            }
-        });
         AppCompatButton cancelPopupButton = newGroupNamePopup.findViewById(R.id.cancelPopupButton);
         cancelPopupButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -113,8 +94,7 @@ public class UserHomeScreen extends AppCompatActivity {
         settingsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent userEditInfoIntent = new Intent(UserHomeScreen.this,UserEditInfoScreen.class);
-                startActivity(userEditInfoIntent);
+                showSettingsPopupMenu(v);
             }
         });
         createNewGroupButton.setOnClickListener(new View.OnClickListener() {
@@ -125,67 +105,59 @@ public class UserHomeScreen extends AppCompatActivity {
         });
 
     }
+    private void showSettingsPopupMenu(View view) {
+        PopupMenu popupMenu = new PopupMenu(this, view);
+        popupMenu.getMenuInflater().inflate(R.menu.settings_menu, popupMenu.getMenu());
 
+
+
+        popupMenu.getMenu().removeItem(R.id.settingsGroupButton);
+        popupMenu.getMenu().removeItem(R.id.settingsLeaveGroup);
+        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                switch (item.getItemId()) {
+                    case R.id.settingsUserButton:
+                        Intent userEditInfoIntent = new Intent(UserHomeScreen.this,UserEditInfoScreen.class);
+                        startActivity(userEditInfoIntent);
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+        });
+
+        popupMenu.show();
+    }
     public void createNewGroup(){
         AppCompatEditText newGroupNameField = newGroupNamePopup.findViewById(R.id.newGroupNameField);
         TextView groupNameError = newGroupNamePopup.findViewById(R.id.groupNameError);
         groupNameError.setVisibility(View.INVISIBLE);
-        if (!(Objects.requireNonNull(newGroupNameField.getText()).toString().equals("")) ){
-            Group group = new Group();
-            String groupId = groupsDatasource.push().getKey();
-            group.setGroupInfo(new GroupInfo(groupId,newGroupNameField.getText().toString(),new Date()));
-            assert groupId != null;
-            groupsDatasource.child(groupId).setValue(group);
-            groupsDatasource.child(groupId).child("usersInGroup").child(user.getUserInfo().getId()).setValue(new UserInGroupInfo(user.getUserInfo().getId(), Role.OWNER));
-            usersDatasource.child(user.getUserInfo().getId()).child("groups").child(groupId).setValue(new UserGroup(group.getGroupInfo().getId(),false));
-            newGroupNamePopup.cancel();
-        }
         if ((Objects.requireNonNull(newGroupNameField.getText()).toString().equals(""))) {
             groupNameError.setText("Please type a name for the group");
             groupNameError.setVisibility(View.VISIBLE);
         }
-    }
-    public void getUserGroups() {
-                groupsDatasource.addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        if (user.getGroups()!=null){
-                            currentUserGroups.clear();
-                            for (UserGroup userGroup: user.getGroups()) {
-                                for (DataSnapshot dataSnapshot:snapshot.getChildren()){
-                                    GroupInfo groupInfo = dataSnapshot.child("groupInfo").getValue(GroupInfo.class);
-                                    if (groupInfo.getId().equals(userGroup.getGroupId())){
-                                        Group group = new Group();
-                                        group.setGroupInfo(groupInfo);
-                                        List<Event> events = new ArrayList<>();
-                                        List<ChatMessage> chatMessages = new ArrayList<>();
-                                        group.setEvents(events);
-                                        List<UserInGroupInfo> usersInGroup = new ArrayList<>();
-                                        for (DataSnapshot userInGroupData:snapshot.child("usersInGroup").getChildren()) {
-                                            usersInGroup.add(userInGroupData.getValue(UserInGroupInfo.class));
-                                        }
-                                        for (DataSnapshot chatMessage:snapshot.child("chat").getChildren()){
-                                            chatMessages.add(chatMessage.getValue(ChatMessage.class));
-                                        }
-                                        group.setUsersInGroup(usersInGroup);
-                                        group.setChat(chatMessages);
-                                        currentUserGroups.add(group);
-                                        currentUserGroups.sort(new GroupComparator(user));
-                                        userGroupRecycleViewAdapter.updateGroupsList(currentUserGroups);
-                                        groupsSetOnClickListener();
-                                        break;
-                                    }
-                                }
-                            }
-                        }
+        else {
+            groupRepository.getAllGroupNamesOnce(new GroupListener() {
+                @Override
+                public void onAllGroupNamesLoaded(List<String> groupNames) {
+                    if (!groupNames.contains(newGroupNameField.getText().toString())){
+                        groupRepository.addGroup(user.getUserInfo().getId(),newGroupNameField.getText().toString());
+                        newGroupNamePopup.cancel();
                     }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-
+                    else {
+                        Toast.makeText(UserHomeScreen.this,"Group with that name already exists!",Toast.LENGTH_LONG).show();
                     }
-                });
+                }
+
+                @Override
+                public void onFailure(DatabaseError error) {
+                    Toast.makeText(UserHomeScreen.this,"Database error!",Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
     }
+
     public void groupsSetOnClickListener(){
         userGroupRecycleViewAdapter.setOnItemClickListener(new UserGroupRecyclerViewAdapter.OnItemClickListener() {
             @Override
@@ -200,32 +172,30 @@ public class UserHomeScreen extends AppCompatActivity {
     public void instantiate(){
         mAuth = FirebaseAuth.getInstance();
         userAuth = mAuth.getCurrentUser();
-        FirebaseDatabase database = FirebaseDatabase.getInstance("https://tourismclubmanagement-default-rtdb.europe-west1.firebasedatabase.app/");
-        usersDatasource = database.getReference("users");
-        groupsDatasource = database.getReference("groups");
-        currentUserGroups = new ArrayList<>();
+        groupRepository = new GroupRepository();
+        userRepository = new UserRepository();
+        firstUserPull = true;
         generateButtons();
     }
     public void getLoggedInUserInfo(String userId){
-        usersDatasource.child(userId).addValueEventListener(new ValueEventListener() {
+        TextView userEmailField = findViewById(R.id.userEmailField);
+        userRepository.getUser(userId, new UserListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                user = new User();
-                UserInfo userInfo = dataSnapshot.child("userInfo").getValue(UserInfo.class);
-                List<UserGroup> groups = new ArrayList<>();
-                for (DataSnapshot snapshot:dataSnapshot.child("groups").getChildren()) {
-                    groups.add(snapshot.getValue(UserGroup.class));
+            public void onUserLoaded(User user) {
+                if (firstUserPull){
+                    UserHomeScreen.this.user = user;
+                    userEmailField.setText(user.getUserInfo().getEmail());
+                    displayUserGroups();
+                    firstUserPull = false;
+                    groupsSetOnClickListener();
                 }
-                user.setUserInfo(userInfo);
-                user.setGroups(groups);
-                TextView userEmailField = findViewById(R.id.userEmailField);
-                userEmailField.setText(user.getUserInfo().getEmail());
-                getUserGroups();
+                user.getGroups().sort(new UserGroupComparator());
                 userGroupRecycleViewAdapter.updateUser(user);
             }
+
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Toast.makeText(UserHomeScreen.this, "Failed to retrieve user data.", Toast.LENGTH_SHORT).show();
+            public void onFailure(DatabaseError error) {
+                Toast.makeText(UserHomeScreen.this,"Database Error!",Toast.LENGTH_LONG).show();
             }
         });
     }

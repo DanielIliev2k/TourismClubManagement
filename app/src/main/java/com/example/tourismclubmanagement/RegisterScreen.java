@@ -1,6 +1,5 @@
 package com.example.tourismclubmanagement;
 
-import static android.content.ContentValues.TAG;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -8,40 +7,38 @@ import androidx.appcompat.widget.AppCompatButton;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.tourismclubmanagement.models.User;
 import com.example.tourismclubmanagement.models.UserInfo;
+import com.example.tourismclubmanagement.repositories.UserRepository;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.Objects;
 
 public class RegisterScreen extends AppCompatActivity {
     private FirebaseAuth mAuth;
-    private FirebaseDatabase firebaseDatabase;
-    private DatabaseReference usersReference;
+    private UserRepository userRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
-        mAuth = FirebaseAuth.getInstance();
         instantiate();
     }
     public void instantiate(){
-        firebaseDatabase = FirebaseDatabase.getInstance("https://tourismclubmanagement-default-rtdb.europe-west1.firebasedatabase.app/");
-        usersReference = firebaseDatabase.getReference("users");
+        mAuth = FirebaseAuth.getInstance();
+        userRepository = new UserRepository();
+        setButtonOnClickListeners();
+    }
+    public void setButtonOnClickListeners(){
         AppCompatButton registerSubmitButton = findViewById(R.id.registerSubmitButton);
         registerSubmitButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -67,11 +64,12 @@ public class RegisterScreen extends AppCompatActivity {
                             FirebaseUser userAuth = mAuth.getCurrentUser();
                             User user = new User();
                             UserInfo userInfo = new UserInfo();
+                            assert userAuth != null;
                             userInfo.setId(userAuth.getUid());
                             userInfo.setEmail(userAuth.getEmail());
                             userInfo.setFirstLogin(true);
                             user.setUserInfo(userInfo);
-                            usersReference.child(user.getUserInfo().getId()).setValue(user);
+                            userRepository.addUser(user);
                             Toast.makeText(RegisterScreen.this, userAuth.getEmail(),
                                     Toast.LENGTH_LONG).show();
                             Intent firstLoginScreen = new Intent(RegisterScreen.this, UserEditInfoScreen.class);

@@ -13,7 +13,6 @@ import com.example.tourismclubmanagement.models.Event;
 import com.example.tourismclubmanagement.models.EventInfo;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -46,7 +45,9 @@ public class EventRecyclerViewAdapter extends RecyclerView.Adapter<EventRecycler
         holder.eventName.setText(eventInfo.getEventName());
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH);
         String date = sdf.format(eventInfo.getDepartureTime());
-        holder.departureTime.setText(date);
+        sdf = new SimpleDateFormat("HH:mm", Locale.ENGLISH);
+        String time =sdf.format(eventInfo.getDepartureTime());
+        holder.departureTime.setText(date +"\n" + time);
         holder.itemView.getLayoutParams().height = 300;
         holder.id = eventInfo.getId();
         holder.itemView.setOnClickListener(new View.OnClickListener() {

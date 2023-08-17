@@ -1,7 +1,8 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/settingsUserButton"
-        android:title="User Settings" />
+        android:title="User Settings"
+        />
     <item
         android:id="@+id/settingsGroupButton"
         android:title="Group Settings" />

@@ -1,74 +1,80 @@
 package com.example.tourismclubmanagement;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.appcompat.widget.AppCompatEditText;
 
 import android.app.Dialog;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.Window;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.tourismclubmanagement.models.Group;
-import com.example.tourismclubmanagement.models.GroupInfo;
-import com.example.tourismclubmanagement.models.User;
-import com.example.tourismclubmanagement.models.UserGroup;
-import com.example.tourismclubmanagement.models.UserInGroupInfo;
+import com.example.tourismclubmanagement.comparators.ImageComparator;
+import com.example.tourismclubmanagement.listeners.GroupListener;
+import com.example.tourismclubmanagement.models.Image;
+import com.example.tourismclubmanagement.repositories.GroupRepository;
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.ListResult;
+import com.google.firebase.storage.StorageReference;
 
 public class GroupEditInfoScreen extends AppCompatActivity {
-    private DatabaseReference groupDatasource;
-    private DatabaseReference usersDatasource;
-    private Dialog deleteConfirmationPopup;
+    private GroupRepository groupRepository;
     private String groupId;
     private String groupName;
+    private AppCompatEditText groupNameField;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_group_edit_info_screen);
+        groupRepository = new GroupRepository();
         groupId = getIntent().getStringExtra("groupId");
         assert groupId != null;
-        groupDatasource = FirebaseDatabase.getInstance("https://tourismclubmanagement-default-rtdb.europe-west1.firebasedatabase.app/").getReference("groups").child(groupId);
-        usersDatasource = FirebaseDatabase.getInstance("https://tourismclubmanagement-default-rtdb.europe-west1.firebasedatabase.app/").getReference("users");
         setButtonOnClickListeners();
         displayGroupName();
     }
     public void displayGroupName(){
+        groupNameField = findViewById(R.id.groupNameField);
         TextView currentGroupName = findViewById(R.id.currentGroupName);
-        groupDatasource.child("groupInfo").child("groupName").addListenerForSingleValueEvent(new ValueEventListener() {
+        groupRepository.getGroupName(groupId, new GroupListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                groupName = snapshot.getValue(String.class);
-                currentGroupName.setText(groupName);
+            public void onGroupNameLoaded(String name) {
+                currentGroupName.setText(name);
+                groupNameField.setText(name);
+                groupName = name;
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
+            public void onFailure(DatabaseError error) {
+                Toast.makeText(GroupEditInfoScreen.this,"Database Error!",Toast.LENGTH_LONG).show();
             }
         });
     }
     public void setButtonOnClickListeners(){
         AppCompatButton deleteGroupButton = findViewById(R.id.deleteGroupButton);
-        AppCompatButton saveGroupInfoButton = findViewById(R.id.saveGroupInfoButton);
-        saveGroupInfoButton.setOnClickListener(new View.OnClickListener() {
+        AppCompatButton saveNewNameButton = findViewById(R.id.saveNewNameButton);
+        AppCompatButton homeButton = findViewById(R.id.homeButton);
+        homeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                saveGroupInfo();
+                Intent homeIntent = new Intent(GroupEditInfoScreen.this,UserHomeScreen.class);
+                startActivity(homeIntent);
+            }
+        });
+        saveNewNameButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String newGroupName = groupNameField.getText().toString();
+                groupRepository.updateGroupName(groupId,newGroupName);
+                Toast.makeText(GroupEditInfoScreen.this,"Name updated!",Toast.LENGTH_SHORT).show();
+                Intent inGroupIntent = new Intent(GroupEditInfoScreen.this,InGroupScreen.class);
+                inGroupIntent.putExtra("groupId",groupId);
+                startActivity(inGroupIntent);
             }
         });
         deleteGroupButton.setOnClickListener(new View.OnClickListener() {
@@ -80,7 +86,7 @@ public class GroupEditInfoScreen extends AppCompatActivity {
     }
 
     private void showDeleteConfirmationPopup() {
-        deleteConfirmationPopup = new Dialog(GroupEditInfoScreen.this);
+        Dialog deleteConfirmationPopup = new Dialog(GroupEditInfoScreen.this);
         deleteConfirmationPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
         deleteConfirmationPopup.setCancelable(true);
         deleteConfirmationPopup.setContentView(R.layout.confirm_group_delete_popup);
@@ -91,59 +97,27 @@ public class GroupEditInfoScreen extends AppCompatActivity {
         deleteGroupConfirmationButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                deleteGroup();
-            }
-        });
-    }
-
-    private void deleteGroup() {
-        groupDatasource.child("usersInGroup").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                for (DataSnapshot dataSnapshot:snapshot.getChildren()) {
-                    UserInGroupInfo userInGroup = dataSnapshot.getValue(UserInGroupInfo.class);
-                    usersDatasource.child(userInGroup.getId()).child("groups").addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot snapshot) {
-                            List<UserGroup> userGroups = new ArrayList<>();
-                            for (DataSnapshot dataSnapshot:snapshot.getChildren()) {
-                                UserGroup userGroup = dataSnapshot.getValue(UserGroup.class);
-                                assert userGroup != null;
-                                if (!userGroup.getGroupId().equals(groupId)){
-                                    userGroups.add(userGroup);
+                groupRepository.deleteGroup(groupId, new GroupListener() {
+                    @Override
+                    public void onGroupDeleted(String response) {
+                        Intent homeIntent = new Intent(GroupEditInfoScreen.this,UserHomeScreen.class);
+                        startActivity(homeIntent);
+                        FirebaseStorage firebaseStorage = FirebaseStorage.getInstance();
+                        StorageReference imagesReference = firebaseStorage.getReference().child(groupId);
+                        imagesReference.listAll().addOnSuccessListener(new OnSuccessListener<ListResult>() {
+                            @Override
+                            public void onSuccess(ListResult listResult) {
+                                if (!listResult.getItems().isEmpty()) {
+                                    for (StorageReference file : listResult.getItems()) {
+                                        imagesReference.child(file.getName()).delete();
+                                    }
                                 }
                             }
-                            usersDatasource.child(userInGroup.getId()).child("groups").setValue(userGroups);
-                        }
-
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError error) {
-
-                        }
-                    });
-
-                }
-                groupDatasource.removeValue().addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void unused) {
-                        Intent userHomeScreenIntent = new Intent(GroupEditInfoScreen.this,UserHomeScreen.class);
-                        startActivity(userHomeScreenIntent);
+                        });
                     }
                 });
 
             }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
         });
-    }
-
-    private void saveGroupInfo() {
-        AppCompatEditText groupNameField = findViewById(R.id.groupNameField);
-        String newGroupName = groupNameField.getText().toString();
-        groupDatasource.child("groupInfo").child("groupName").setValue(newGroupName);
-
     }
 }

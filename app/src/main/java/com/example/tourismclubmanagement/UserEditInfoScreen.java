@@ -1,6 +1,5 @@
 package com.example.tourismclubmanagement;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 
@@ -10,142 +9,108 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.tourismclubmanagement.models.Group;
+import com.example.tourismclubmanagement.listeners.UserListener;
 import com.example.tourismclubmanagement.models.User;
-import com.example.tourismclubmanagement.models.UserGroup;
 import com.example.tourismclubmanagement.models.UserInfo;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
+import com.example.tourismclubmanagement.repositories.GroupRepository;
+import com.example.tourismclubmanagement.repositories.UserRepository;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class UserEditInfoScreen extends AppCompatActivity {
-    private Intent mainScreenIntent;
+    private UserRepository userRepository;
     private FirebaseUser userAuth;
-    private User user;
-    private AppCompatButton saveUserInfoButton;
     private TextInputEditText userOwnNameField;
     private TextInputEditText userAgeField;
+    private User currentUser;
     private TextView currentUserEmail;
     private TextInputEditText userHometownField;
-    private FirebaseDatabase database;
-    private DatabaseReference usersDatasource;
-    private FirebaseAuth mAuth;
+    private GroupRepository groupRepository;
+
+    public UserEditInfoScreen() {
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user_edit_info_screen);
         instantiate();
-        setOnClickListeners();
+        setButtonOnClickListeners();
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        if (userAuth!=null){
-            getUserFromDb(userAuth.getUid());
-        }
-    }
-
-    public void getInfoFromFields(){
-        user.getUserInfo().setName(userOwnNameField.getText().toString());
-        user.getUserInfo().setAge(Integer.parseInt(userAgeField.getText().toString()));
-        user.getUserInfo().setHometown(userHometownField.getText().toString());
+    public UserInfo getInfoFromFields(){
+        UserInfo userInfo = new UserInfo();
+        userInfo.setName(userOwnNameField.getText().toString());
+        userInfo.setAge(Integer.parseInt(userAgeField.getText().toString()));
+        userInfo.setHometown(userHometownField.getText().toString());
+        return userInfo;
     }
     public void instantiate(){
-        mAuth = FirebaseAuth.getInstance();
+        FirebaseAuth mAuth = FirebaseAuth.getInstance();
         userAuth = mAuth.getCurrentUser();
         currentUserEmail= findViewById(R.id.currentUserEmail);
-        saveUserInfoButton = findViewById(R.id.saveUserInfoAndLoginButton);
         userHometownField = findViewById(R.id.hometownField);
         userOwnNameField = findViewById(R.id.nameField);
         userAgeField = findViewById(R.id.ageField);
-        database = FirebaseDatabase.getInstance("https://tourismclubmanagement-default-rtdb.europe-west1.firebasedatabase.app/");
-        usersDatasource = database.getReference("users");
-        generateButtons();
+        groupRepository = new GroupRepository();
+        userRepository = new UserRepository();
+        getUserFromDb();
     }
-    public void generateButtons(){
-        AppCompatButton logoutButton = findViewById(R.id.logoutButton);
-        logoutButton.setOnClickListener(new View.OnClickListener() {
+    public void getUserFromDb(){
+        userRepository.getUser(userAuth.getUid(), new UserListener() {
             @Override
-            public void onClick(View v) {
-                mAuth.signOut();
-                Intent loginIntent = new Intent(UserEditInfoScreen.this,LoginScreen.class);
-                startActivity(loginIntent);
-            }
-        });
-    }
-    public void getUserFromDb(String userId){
-        usersDatasource.child(userId).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                user = new User();
-                UserInfo userInfo = dataSnapshot.child("userInfo").getValue(UserInfo.class);
-                List<UserGroup> groups = new ArrayList<>();
-                for (DataSnapshot snapshot:dataSnapshot.child("groups").getChildren()) {
-                    groups.add(snapshot.getValue(UserGroup.class));
-                }
-                user.setUserInfo(userInfo);
-                user.setGroups(groups);
-                assert userInfo != null;
-                if (!userInfo.getFirstLogin()){
-                    populateFields();
+            public void onUserLoaded(User user) {
+                currentUser = user;
+                if (!user.getUserInfo().getFirstLogin()){
+                    populateFields(user.getUserInfo());
                 }
             }
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Toast.makeText(UserEditInfoScreen.this, "Failed to retrieve data.", Toast.LENGTH_SHORT).show();
+            public void onFailure(DatabaseError error) {
+                Toast.makeText(UserEditInfoScreen.this,"Database Error!",Toast.LENGTH_LONG).show();
             }
         });
     }
-    public void populateFields(){
-        userOwnNameField.setText(user.getUserInfo().getName());
-        userAgeField.setText(user.getUserInfo().getAge().toString());
-        userHometownField.setText(user.getUserInfo().getHometown());
-        currentUserEmail.setText(user.getUserInfo().getEmail());
+    public void populateFields(UserInfo userInfo){
+        userOwnNameField.setText(userInfo.getName());
+        userAgeField.setText(userInfo.getAge().toString());
+        userHometownField.setText(userInfo.getHometown());
+        currentUserEmail.setText(userInfo.getEmail());
     }
-    public void setOnClickListeners(){
+    public void setButtonOnClickListeners(){
+
+        AppCompatButton saveUserInfoButton = findViewById(R.id.saveUserInfoAndLoginButton);
         saveUserInfoButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getInfoFromFields();
-                if (user.getUserInfo().getFirstLogin()){
-                    user.getUserInfo().setFirstLogin(false);
-                    pushUserToDb();
+                UserInfo userInfo = getInfoFromFields();
+                userInfo.setId(currentUser.getUserInfo().getId());
+                userInfo.setEmail(currentUser.getUserInfo().getEmail());
+                userInfo.setFirstLogin(currentUser.getUserInfo().getFirstLogin());
+                if (userInfo.getFirstLogin()){
+                    userInfo.setFirstLogin(false);
+                    userRepository.updateUser(userInfo);
                     login();
                 }
                 else {
-                    pushUserToDb();
+                    userRepository.updateUser(userInfo);
                 }
             }
         });
-    }
-    public void pushUserToDb(){
-        usersDatasource.child(user.getUserInfo().getId()).setValue(user).addOnSuccessListener(new OnSuccessListener<Void>() {
+        AppCompatButton homeButton = findViewById(R.id.homeButton);
+        homeButton.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onSuccess(Void unused) {
-                Toast.makeText(UserEditInfoScreen.this,"Saved!", Toast.LENGTH_SHORT).show();
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception e) {
-
-                Toast.makeText(UserEditInfoScreen.this,"Something went wrong!", Toast.LENGTH_LONG).show();
+            public void onClick(View view) {
+                Intent homeIntent = new Intent(UserEditInfoScreen.this,UserHomeScreen.class);
+                startActivity(homeIntent);
             }
         });
     }
+
     public void login(){
-        mainScreenIntent = new Intent(this, UserHomeScreen.class);
+        Intent mainScreenIntent = new Intent(this, UserHomeScreen.class);
         startActivity(mainScreenIntent);
     }
 }

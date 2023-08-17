@@ -84,7 +84,7 @@
                 android:textColor="@color/MardiGras" />
 
             <TextView
-                android:id="@+id/userDetailsAdminField"
+                android:id="@+id/userDetailsRoleField"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="10dp"

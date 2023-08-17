@@ -27,7 +27,7 @@
             <androidx.appcompat.widget.AppCompatButton
                 android:layout_width="40dp"
                 android:layout_height="40dp"
-                android:id="@+id/logoutButton"
+                android:id="@+id/homeButton"
                 android:background="@drawable/home_button"
                 android:layout_gravity="start"/>
             <TextView
@@ -62,19 +62,19 @@
                 android:maxLines="1"
                 android:maxLength="35" />
             <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/saveGroupInfoButton"
+                android:id="@+id/saveNewNameButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_margin="30dp"
                 android:background="@drawable/button_background"
                 android:text="Save" />
             <androidx.appcompat.widget.AppCompatButton
-            android:id="@+id/deleteGroupButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="30dp"
-            android:background="@drawable/button_background"
-            android:text="Delete" />
+                android:id="@+id/deleteGroupButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="30dp"
+                android:background="@drawable/button_background"
+                android:text="Delete Group" />
         </androidx.appcompat.widget.LinearLayoutCompat>
     </androidx.appcompat.widget.LinearLayoutCompat>
 

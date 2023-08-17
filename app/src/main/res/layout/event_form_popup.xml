@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/event_item_background">
+    android:background="@drawable/event_form_background">
     <RelativeLayout
         android:id="@+id/relativeLayout"
         android:layout_width="match_parent"

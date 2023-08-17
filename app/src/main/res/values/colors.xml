@@ -10,7 +10,7 @@
     <color name="White">#FFFFFF</color>
     <color name="Ivory">#FFFFF0</color>
     <color name="LightYellow">#FFFFE0</color>
-    <color name="Yellow">#FFFF00</color>
+        <color name="Yellow">#FFFF00</color>
     <color name="Snow">#FFFAFA</color>
     <color name="FloralWhite">#FFFAF0</color>
     <color name="LemonChiffon">#FFFACD</color>
@@ -157,5 +157,10 @@
     <color name="Wisteria">#B4A0E5</color>
     <color name="MardiGras">#822E81</color>
     <color name="LightRed">#ff1a0e</color>
+    <color name="PeachPuffDark">#ffc796</color>
+    <color name="CeladonTransparent">#ccB7F0AD</color>
+    <color name="LightRedTransparent">#ccff1a0e</color>
+    <color name="YellowTransparent">#ccFFFF00</color>
+    <color name="ShadowDarkGray">#6d6d6d</color>
 
 </resources>

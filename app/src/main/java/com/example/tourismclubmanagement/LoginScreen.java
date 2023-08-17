@@ -12,35 +12,29 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.tourismclubmanagement.listeners.UserListener;
 import com.example.tourismclubmanagement.models.User;
-import com.example.tourismclubmanagement.models.UserInfo;
+import com.example.tourismclubmanagement.repositories.UserRepository;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
 import java.util.Objects;
 
 public class LoginScreen extends AppCompatActivity {
-
-    private DatabaseReference usersDatasource;
+    private UserRepository userRepository;
     private FirebaseAuth mAuth;
-    private UserInfo userInfo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login_screen);
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-        FirebaseDatabase database = FirebaseDatabase.getInstance("https://tourismclubmanagement-default-rtdb.europe-west1.firebasedatabase.app/");
-        usersDatasource = database.getReference("users");
+        userRepository = new UserRepository();
         mAuth = FirebaseAuth.getInstance();
         setButtonOnClickListeners();
     }
@@ -79,7 +73,21 @@ public class LoginScreen extends AppCompatActivity {
                         public void onComplete(@NonNull Task<AuthResult> task) {
                             if (task.isSuccessful()) {
                                 FirebaseUser userAuth = mAuth.getCurrentUser();
-                                getUserInfoFromDb(userAuth.getUid());
+                                userRepository.getUserOnce(userAuth.getUid(), new UserListener() {
+                                    @Override
+                                    public void onUserLoaded(User user) {
+                                        Intent loginIntent = new Intent(LoginScreen.this, UserHomeScreen.class);
+                                        if (user.getUserInfo().getFirstLogin()){
+                                            loginIntent = new Intent(LoginScreen.this, UserEditInfoScreen.class);
+                                        }
+                                        startActivity(loginIntent);
+                                    }
+                                    @Override
+                                    public void onFailure(DatabaseError error) {
+                                        Toast.makeText(LoginScreen.this,"Database Error!",Toast.LENGTH_LONG).show();
+                                    }
+                                });
+
 
                             } else {
                                 Toast.makeText(LoginScreen.this, "Authentication failed.",
@@ -96,23 +104,5 @@ public class LoginScreen extends AppCompatActivity {
             loginPasswordError.setText("Please type your password");
             loginPasswordError.setVisibility(View.VISIBLE);
         }
-    }
-    public void getUserInfoFromDb(String userId){
-        usersDatasource.child(userId).child("userInfo").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                userInfo = snapshot.getValue(UserInfo.class);
-                Intent loginIntent = new Intent(LoginScreen.this, UserHomeScreen.class);
-                if (userInfo.getFirstLogin()){
-                    loginIntent = new Intent(LoginScreen.this, UserEditInfoScreen.class);
-                }
-                startActivity(loginIntent);
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(LoginScreen.this,"User error!",Toast.LENGTH_SHORT).show();
-            }
-        });
     }
 }

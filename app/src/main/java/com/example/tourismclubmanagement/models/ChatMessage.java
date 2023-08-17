@@ -1,6 +1,5 @@
 package com.example.tourismclubmanagement.models;
 
-import java.sql.Time;
 import java.util.Date;
 
 public class ChatMessage {

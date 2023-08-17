@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.appcompat.widget.AppCompatEditText;
+import androidx.appcompat.widget.LinearLayoutCompat;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -38,28 +39,28 @@ import com.example.tourismclubmanagement.adapters.ParticipantRecyclerViewAdapter
 import com.example.tourismclubmanagement.adapters.UsersRecyclerViewAdapter;
 import com.example.tourismclubmanagement.comparators.ChatMessageComparator;
 import com.example.tourismclubmanagement.comparators.EventComparator;
+import com.example.tourismclubmanagement.comparators.ImageComparator;
 import com.example.tourismclubmanagement.comparators.UserComparator;
+import com.example.tourismclubmanagement.listeners.GroupListener;
+import com.example.tourismclubmanagement.listeners.UserListener;
 import com.example.tourismclubmanagement.models.ChatMessage;
 import com.example.tourismclubmanagement.models.Event;
 import com.example.tourismclubmanagement.models.EventInfo;
 import com.example.tourismclubmanagement.models.EventParticipant;
 import com.example.tourismclubmanagement.models.Group;
-import com.example.tourismclubmanagement.models.GroupInfo;
+import com.example.tourismclubmanagement.models.Image;
 import com.example.tourismclubmanagement.models.Role;
 import com.example.tourismclubmanagement.models.Status;
 import com.example.tourismclubmanagement.models.User;
-import com.example.tourismclubmanagement.models.UserGroup;
 import com.example.tourismclubmanagement.models.UserInGroupInfo;
 import com.example.tourismclubmanagement.models.UserInfo;
+import com.example.tourismclubmanagement.repositories.GroupRepository;
+import com.example.tourismclubmanagement.repositories.UserRepository;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.ListResult;
 import com.google.firebase.storage.StorageReference;
@@ -70,11 +71,11 @@ import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.TimeZone;
 
 public class InGroupScreen extends AppCompatActivity{
 
@@ -98,56 +99,43 @@ public class InGroupScreen extends AppCompatActivity{
     private Dialog chatPopup;
     private Dialog imagePopup;
     private Dialog participantsPopup;
+    private Dialog deleteImagePopup;
     private MyPagerAdapter pagerAdapter;
     private Group currentGroup;
-    private ArrayList<Event> eventsList;
-    private List<String> imageReferences;
+    private List<Event> eventsList;
     private List<User> currentGroupUsersList;
     private List<UserInGroupInfo> usersInGroupList;
-    private FirebaseDatabase database;
-    private DatabaseReference eventsDatasource;
-    private DatabaseReference usersDatasource;
-    private DatabaseReference groupsDatasource;
-    private DatabaseReference chatReference;
-    private Boolean deleteEventMode;
-    private Boolean editEventMode;
-    private Boolean deleteUserMode;
+    private GroupRepository groupRepository;
+    private UserRepository userRepository;
+    private boolean deleteEventMode;
+    private boolean editEventMode;
+    private boolean deleteUserMode;
     private ViewPager viewPager;
     private StorageReference storageReference;
-    private List<Uri> imagesToShow;
-    private List<ChatMessage> messages;
+    private List<Image> imagesToShow;
+    private boolean firstUsersLoad;
     private FirebaseUser userAuth;
-    private List<User> allUsersList;
     private Role currentUserRole;
-    private Boolean deleteImageMode;
-    private TextView userDetailsAdminField;
+    private boolean deleteImageMode;
+    private boolean firstGroupPull;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_in_group_screen);
         instantiate();
-        getGroupFromDb(this.getIntent().getStringExtra("groupId"));
 
     }
     public void getLoggedInUserInfo(String userId){
-        usersDatasource.child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
+        userRepository.getUser(userId, new UserListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                user = new User();
-                UserInfo userInfo = dataSnapshot.child("userInfo").getValue(UserInfo.class);
-                List<UserGroup> groups = new ArrayList<>();
-                for (DataSnapshot snapshot:dataSnapshot.child("groups").getChildren()) {
-                    groups.add(snapshot.getValue(UserGroup.class));
-                }
-                user.setUserInfo(userInfo);
-                user.setGroups(groups);
+            public void onUserLoaded(User user) {
+                InGroupScreen.this.user = user;
                 currentUserRole = getCurrentUserRole();
-                generatePages();
-                updateLastLogin();
             }
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Toast.makeText(InGroupScreen.this, "Failed to retrieve data.", Toast.LENGTH_SHORT).show();
+            public void onFailure(DatabaseError error) {
+                Toast.makeText(InGroupScreen.this,"Database Error!",Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -164,112 +152,65 @@ public class InGroupScreen extends AppCompatActivity{
     }
 
     public void getGroupFromDb(String groupId){
-        groupsDatasource.child(groupId).addListenerForSingleValueEvent(new ValueEventListener() {
+        groupRepository.getGroup(groupId, new GroupListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                currentGroup = new Group();
-                usersInGroupList.clear();
-                ArrayList<Event> events = new ArrayList<>();
-                List<ChatMessage> chatMessages = new ArrayList<>();
-                for (DataSnapshot eventData:dataSnapshot.child("events").getChildren()) {
-                    Event event = new Event();
-                    EventInfo eventInfo= eventData.child("eventInfo").getValue(EventInfo.class);
-                    List<EventParticipant> eventParticipants = new ArrayList<>();
-                    for (DataSnapshot eventParticipant:eventData.child("participants").getChildren()) {
-                        eventParticipants.add(eventParticipant.getValue(EventParticipant.class));
+            public void onGroupLoaded(Group group) {
+                if (group!= null){
+                    currentGroup = group;
+                    getLoggedInUserInfo(userAuth.getUid());
+                    getUsersFromDb();
+                    eventsList.clear();
+                    eventsList = group.getEvents();
+                    eventsList.sort(new EventComparator());
+                    chatButton = findViewById(R.id.chatButton);
+                    checkForNewChat();
+                    if(!firstGroupPull){
+                        pagerAdapter.updateEvents(eventsList);
                     }
-                    event.setEventInfo(eventInfo);
-                    event.setParticipants(eventParticipants);
-                    events.add(event);
+                    else {
+                        TextView groupNameField = findViewById(R.id.groupNameField);
+                        groupNameField.setText(group.getGroupInfo().getGroupName());
+                        getImagesFromStorage();
+                        firstGroupPull=false;
+                    }
                 }
-                for (DataSnapshot userInGroup:dataSnapshot.child("usersInGroup").getChildren()){
-                    usersInGroupList.add(userInGroup.getValue(UserInGroupInfo.class));
-                }
-                for (DataSnapshot chatMessage:dataSnapshot.child("chat").getChildren()){
-                    chatMessages.add(chatMessage.getValue(ChatMessage.class));
-                }
-                currentGroup.setGroupInfo(dataSnapshot.child("groupInfo").getValue(GroupInfo.class));
-                TextView groupNameField = findViewById(R.id.groupNameField);
-                groupNameField.setText(currentGroup.getGroupInfo().getGroupName());
-                currentGroup.setEvents(events);
-                currentGroup.setUsersInGroup(usersInGroupList);
-                currentGroup.setChat(chatMessages);
-                eventsDatasource = database.getReference("groups").child(currentGroup.getGroupInfo().getId()).child("events");
-                getLoggedInUserInfo(userAuth.getUid());
-                getUsersFromDb();
-                getImagesFromStorage();
-                getEventsFromDb();
-                chatButton = findViewById(R.id.chatButton);
-                chatReference = groupsDatasource.child(currentGroup.getGroupInfo().getId()).child("chat");
-                newChatNotification();
             }
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Toast.makeText(InGroupScreen.this, "Failed to retrieve group data.", Toast.LENGTH_SHORT).show();
+            public void onFailure(DatabaseError error) {
+                Toast.makeText(InGroupScreen.this,"Database Error!",Toast.LENGTH_LONG).show();
             }
         });
     }
-    public void getEventsFromDb(){
-        eventsDatasource.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                eventsList.clear();
-                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    if (snapshot!=null){
-                        Event event = new Event();
-                        EventInfo eventInfo= snapshot.child("eventInfo").getValue(EventInfo.class);
-                        Date departureTime = snapshot.child("eventInfo").child("departureTime").getValue(Date.class);
-                        assert eventInfo != null;
-                        eventInfo.setDepartureTime(departureTime);
-                        List<EventParticipant> eventParticipants = new ArrayList<>();
-                        for (DataSnapshot eventParticipant:snapshot.child("participants").getChildren()) {
-                            eventParticipants.add(eventParticipant.getValue(EventParticipant.class));
-                        }
-                        event.setEventInfo(eventInfo);
-                        event.setParticipants(eventParticipants);
-                        eventsList.add(event);
-                    }
-                }
-                eventsList.sort(new EventComparator());
-                pagerAdapter.updateEvents(eventsList);
 
-            }
-            @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Toast.makeText(InGroupScreen.this, "Failed to retrieve events data.", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
     public void getUsersFromDb(){
-        usersDatasource.addValueEventListener(new ValueEventListener() {
+
+        userRepository.getAllUsers(new UserListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+            public void onAllUsersLoaded(List<User> users) {
                 currentGroupUsersList.clear();
-                allUsersList.clear();
-                for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
-                    User tempUser = new User();
-                    UserInfo userInfo = snapshot.child("userInfo").getValue(UserInfo.class);
-                    List<UserGroup> groups = new ArrayList<>();
-                    for (DataSnapshot snapshotGroups:snapshot.child("groups").getChildren()) {
-                        groups.add(snapshotGroups.getValue(UserGroup.class));
-                    }
-                    tempUser.setUserInfo(userInfo);
-                    tempUser.setGroups(groups);
-                    allUsersList.add(tempUser);
-                    if (!usersInGroupList.isEmpty()){
-                        for (int i = 0;i<usersInGroupList.size();i++) {
-                            if (usersInGroupList.get(i).getId().equals(user.getUserInfo().getId())){
-                                currentGroupUsersList.add(user);
-                            }
+                usersInGroupList.clear();
+                for (UserInGroupInfo userInGroup:currentGroup.getUsersInGroup()) {
+                    for (User user:users) {
+                        if (user.getUserInfo().getId().equals(userInGroup.getId())){
+                            currentGroupUsersList.add(user);
+                            usersInGroupList.add(userInGroup);
                         }
                     }
                 }
-                Collections.sort(currentGroupUsersList,new UserComparator(usersInGroupList));
-                pagerAdapter.updateUsers(currentGroupUsersList);
+                if (!firstUsersLoad){
+                    pagerAdapter.updateUsers(currentGroupUsersList);
+                    pagerAdapter.updateUsersInGroupList(usersInGroupList);
+                    currentGroupUsersList.sort(new UserComparator(usersInGroupList));
+                }
+                else{
+                    firstUsersLoad=false;
+                    currentGroupUsersList.sort(new UserComparator(usersInGroupList));
+                    generatePages();
+                }
             }
             @Override
-            public void onCancelled(@NonNull DatabaseError databaseError) {
-                Toast.makeText(InGroupScreen.this, "Failed to retrieve users data.", Toast.LENGTH_SHORT).show();
+            public void onFailure(DatabaseError error) {
+                Toast.makeText(InGroupScreen.this,"Database Error!",Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -304,7 +245,7 @@ public class InGroupScreen extends AppCompatActivity{
         AppCompatButton addUserButton = pagerAdapter.getPage(1).findViewById(R.id.addUserButton);
         AppCompatButton deleteEventButton = pagerAdapter.getPage(0).findViewById(R.id.deleteEventButton);
         AppCompatButton uploadImageButton = pagerAdapter.getPage(2).findViewById(R.id.uploadImageButton);
-        ConstraintLayout eventsPageButtonsContainer = pagerAdapter.getPage(0).findViewById(R.id.eventsPageButtonsContainer);
+        LinearLayoutCompat eventsPageButtonsContainer = pagerAdapter.getPage(0).findViewById(R.id.eventsPageButtonsContainer);
         ConstraintLayout membersPageButtonsContainer = pagerAdapter.getPage(1).findViewById(R.id.membersPageButtonsContainer);
         ConstraintLayout photosPageButtonsContainer = pagerAdapter.getPage(2).findViewById(R.id.photosPageButtonsContainer);
         eventsPageButtonsContainer.setVisibility(View.VISIBLE);
@@ -390,8 +331,8 @@ public class InGroupScreen extends AppCompatActivity{
         AppCompatButton deleteUserButton = pagerAdapter.getPage(1).findViewById(R.id.deleteUserButton);
         AppCompatButton uploadImageButton = pagerAdapter.getPage(2).findViewById(R.id.uploadImageButton);
         AppCompatButton deleteImageButton = pagerAdapter.getPage(2).findViewById(R.id.deleteImageButton);
-        ConstraintLayout eventsPageButtonsContainer = pagerAdapter.getPage(0).findViewById(R.id.eventsPageButtonsContainer);
-        ConstraintLayout membersPageButtonsContainer = pagerAdapter.getPage(1).findViewById(R.id.membersPageButtonsContainer);
+        LinearLayoutCompat eventsPageButtonsContainer = pagerAdapter.getPage(0).findViewById(R.id.eventsPageButtonsContainer);
+        LinearLayoutCompat membersPageButtonsContainer = pagerAdapter.getPage(1).findViewById(R.id.membersPageButtonsContainer);
         ConstraintLayout photosPageButtonsContainer = pagerAdapter.getPage(2).findViewById(R.id.photosPageButtonsContainer);
 
         eventsPageButtonsContainer.setVisibility(View.VISIBLE);
@@ -572,38 +513,30 @@ public class InGroupScreen extends AppCompatActivity{
     }
 
     private void leaveGroup() {
-
+        groupRepository.removeUserFromGroup(currentGroup.getGroupInfo().getId(),userAuth.getUid());
+        Intent homeIntent = new Intent(InGroupScreen.this,UserHomeScreen.class);
+        startActivity(homeIntent);
     }
 
     private void showChatPopup() {
-        messages = new ArrayList<>();
         chatPopup = new Dialog(InGroupScreen.this);
         chatPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
         chatPopup.setCancelable(true);
         chatPopup.setContentView(R.layout.chat_popup);
-        updateLastLogin();
+        groupRepository.updateUserLastLogin(currentGroup.getGroupInfo().getId(),user.getUserInfo().getId());
         int width = (int) (getResources().getDisplayMetrics().widthPixels);
         int height = (int) (getResources().getDisplayMetrics().heightPixels);
-        chatPopup.getWindow().setLayout(width,height);
+        Objects.requireNonNull(chatPopup.getWindow()).setLayout(width,height);
         RecyclerView chatRecyclerView = chatPopup.findViewById(R.id.chatRecyclerView);
-        ChatRecyclerViewAdapter chatRecyclerViewAdapter = new ChatRecyclerViewAdapter(messages);
+        ChatRecyclerViewAdapter chatRecyclerViewAdapter = new ChatRecyclerViewAdapter(new ArrayList<>());
         chatRecyclerView.setLayoutManager(new LinearLayoutManager(InGroupScreen.this));
         chatRecyclerView.setAdapter(chatRecyclerViewAdapter);
-        chatReference.addValueEventListener(new ValueEventListener() {
+        groupRepository.getChat(currentGroup.getGroupInfo().getId(), new GroupListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                messages.clear();
-                for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
-                    messages.add(dataSnapshot.getValue(ChatMessage.class));
-                }
-                Collections.sort(messages,new ChatMessageComparator());
+            public void onChatLoaded(List<ChatMessage> messages) {
+                messages.sort(new ChatMessageComparator());
                 chatRecyclerViewAdapter.updateMessages(messages);
                 chatRecyclerView.scrollToPosition(messages.size()-1);
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
             }
         });
         chatButton.setBackgroundResource(R.drawable.chat);
@@ -612,7 +545,7 @@ public class InGroupScreen extends AppCompatActivity{
             @Override
             public void onClick(View v) {
                 chatPopup.cancel();
-                updateLastLogin();
+                groupRepository.updateUserLastLogin(currentGroup.getGroupInfo().getId(),user.getUserInfo().getId());
             }
         });
         AppCompatButton sendMessageButton = chatPopup.findViewById(R.id.sendMessageButton);
@@ -623,14 +556,9 @@ public class InGroupScreen extends AppCompatActivity{
             @Override
             public void onClick(View v) {
                 if (!Objects.requireNonNull(chatMessageField.getText()).toString().equals("")){
-                    ChatMessage message = new ChatMessage();
-                    Date date = new Date();
-                    message.setDate(date);
-                    message.setSender(user.getUserInfo().getName());
-                    message.setMessage(chatMessageField.getText().toString());
+                    groupRepository.addChatMessage(currentGroup.getGroupInfo().getId(),user.getUserInfo().getName(),chatMessageField.getText().toString());
                     chatMessageField.setText("");
-                    chatReference.child(date.toString()).setValue(message);
-                }
+                    }
             }
         });
         chatPopup.setOnCancelListener(new DialogInterface.OnCancelListener() {
@@ -640,24 +568,24 @@ public class InGroupScreen extends AppCompatActivity{
             }
         });
     }
-    private void newChatNotification(){
-        final boolean[] firstPull = {true};
-        chatReference.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (!firstPull[0]){
-                    chatButton.setBackgroundResource(R.drawable.chat_notification);
+    public void checkForNewChat(){
+        if (currentGroup.getGroupInfo()!=null){
+            groupRepository.getChat(currentGroup.getGroupInfo().getId(), new GroupListener() {
+                @Override
+                public void onChatLoaded(List<ChatMessage> messages) {
+                    if(!messages.isEmpty()){
+                        for (UserInGroupInfo userInGroup:currentGroup.getUsersInGroup()) {
+                            if (userInGroup.getId().equals(user.getUserInfo().getId())){
+                                if (userInGroup.getLastLogin()==null || messages.get(messages.size()-1).getDate().after(userInGroup.getLastLogin())){
+                                    chatButton.setBackgroundResource(R.drawable.chat_notification);
+                                }
+                                break;
+                            }
+                        }
+                    }
                 }
-                else {
-                    firstPull[0] = false;
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
+            });
+        }
     }
     public void choosePictureToUpload(){
         Intent intent = new Intent();
@@ -712,38 +640,35 @@ public class InGroupScreen extends AppCompatActivity{
     }
     public void getImagesFromStorage(){
         imagesToShow.clear();
-        imageReferences.clear();
         StorageReference imagesReference = storageReference.child(currentGroup.getGroupInfo().getId());
 
         imagesReference.listAll().addOnSuccessListener(new OnSuccessListener<ListResult>() {
             @Override
             public void onSuccess(ListResult listResult) {
                 if (listResult.getItems().isEmpty()){
-                    pagerAdapter.updateImageReferences(imageReferences);
                     pagerAdapter.updateImages(imagesToShow);
                 }
                 else{
                     for(StorageReference file:listResult.getItems()){
-                        imageReferences.add(file.getName());
+                        Image image = new Image();
+                        image.setReference(file.getName());
                         file.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
                             @Override
                             public void onSuccess(Uri uri) {
-                                imagesToShow.add(uri);
+                                image.setUri(uri);
+                                imagesToShow.add(image);
                             }
                         }).addOnSuccessListener(new OnSuccessListener<Uri>() {
                             @Override
                             public void onSuccess(Uri uri) {
-                                Collections.sort(imagesToShow);
-                                Collections.sort(imageReferences);
-                                pagerAdapter.updateImageReferences(imageReferences);
+                                imagesToShow.sort(new ImageComparator());
                                 pagerAdapter.updateImages(imagesToShow);
                             }
                         });
 
                     }
                 }
-                }
-
+            }
         });
 
     }
@@ -755,9 +680,7 @@ public class InGroupScreen extends AppCompatActivity{
             currentImageReference.putFile(uri).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                 @Override
                 public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                    imageReferences.add(id);
-                    imagesToShow.add(uri);
-                    pagerAdapter.updateImageReferences(imageReferences);
+                    imagesToShow.add(new Image(uri,id));
                     pagerAdapter.updateImages(imagesToShow);
                 }
             }).addOnFailureListener(new OnFailureListener() {
@@ -808,12 +731,6 @@ public class InGroupScreen extends AppCompatActivity{
 
             }
         });
-        eventFormPopup.setOnCancelListener(new DialogInterface.OnCancelListener() {
-            @Override
-            public void onCancel(DialogInterface dialog) {
-                eventFormPopup = new Dialog(InGroupScreen.this);
-            }
-        });
     }
     public void populateEventFields(EventInfo eventInfo){
         eventNameField.setText(eventInfo.getEventName());
@@ -840,16 +757,14 @@ public class InGroupScreen extends AppCompatActivity{
         eventParticipation = eventFormPopup.findViewById(R.id.participationCheck);
     }
     public void addFormEventToDb(EventInfo eventInfo){
-        String eventId = null;
-        if (eventInfo!=null){
-            eventId = eventInfo.getId();
+        if (eventInfo==null){
+            eventInfo=new EventInfo();
         }
-        eventInfo=new EventInfo();
-        Calendar cal = Calendar.getInstance();
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Bulgaria"));
         cal.set(Calendar.YEAR, eventDatePicker.getYear());
         cal.set(Calendar.MONTH, eventDatePicker.getMonth());
         cal.set(Calendar.DAY_OF_MONTH, eventDatePicker.getDayOfMonth());
-        cal.set(Calendar.HOUR,eventTimePicker.getHour());
+        cal.set(Calendar.HOUR,eventTimePicker.getHour()-3);
         cal.set(Calendar.MINUTE,eventTimePicker.getMinute());
         Date eventTime = cal.getTime();
         eventInfo.setEventName(eventNameField.getText().toString());
@@ -859,13 +774,16 @@ public class InGroupScreen extends AppCompatActivity{
         eventInfo.setNotes(eventNotesField.getText().toString());
         eventInfo.setEventName(eventNameField.getText().toString());
         eventInfo.setDepartureTime(eventTime);
-        eventInfo.setParticipation(eventParticipation.isChecked());
-        eventInfo.setId(eventId);
-        if (eventId==null){
-            eventId = eventsDatasource.push().getKey();
-            eventInfo.setId(eventId);
+        if (eventInfo.getParticipation()==null){
+            eventInfo.setParticipation(eventParticipation.isChecked());
         }
-        eventsDatasource.child(eventId).child("eventInfo").setValue(eventInfo);
+        if (eventInfo.getId()==null){
+            groupRepository.addEvent(currentGroup.getGroupInfo().getId(),eventInfo);
+        }
+        else {
+            groupRepository.updateEvent(currentGroup.getGroupInfo().getId(),eventInfo);
+        }
+
 
     }
     public void instantiate(){
@@ -873,11 +791,7 @@ public class InGroupScreen extends AppCompatActivity{
         userAuth = mAuth.getCurrentUser();
         FirebaseStorage firebaseStorage = FirebaseStorage.getInstance();
         storageReference = firebaseStorage.getReference();
-        database = FirebaseDatabase.getInstance("https://tourismclubmanagement-default-rtdb.europe-west1.firebasedatabase.app/");
-        usersDatasource = database.getReference("users");
-        groupsDatasource = database.getReference("groups");
         eventsList = new ArrayList<>();
-        allUsersList = new ArrayList<>();
         currentGroupUsersList = new ArrayList<>();
         usersInGroupList = new ArrayList<>();
         imagesToShow = new ArrayList<>();
@@ -885,7 +799,11 @@ public class InGroupScreen extends AppCompatActivity{
         editEventMode = false;
         deleteUserMode = false;
         deleteImageMode = false;
-        imageReferences = new ArrayList<>();
+        firstUsersLoad = true;
+        firstGroupPull = true;
+        groupRepository = new GroupRepository();
+        userRepository = new UserRepository();
+        getGroupFromDb(this.getIntent().getStringExtra("groupId"));
     }
     public void showDeleteEventPopup(String eventId){
         deleteEventPopup = new Dialog(InGroupScreen.this);
@@ -913,7 +831,7 @@ public class InGroupScreen extends AppCompatActivity{
         confirmDeleteEventButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                deleteEvent(eventId);
+                groupRepository.deleteEvent(currentGroup.getGroupInfo().getId(),eventId);
                 deleteEventPopup.cancel();
             }
         });
@@ -944,65 +862,13 @@ public class InGroupScreen extends AppCompatActivity{
         confirmDeleteUserButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                deleteUserFromGroup(userId);
+                groupRepository.removeUserFromGroup(currentGroup.getGroupInfo().getId(),userId);
                 deleteUserPopup.cancel();
             }
         });
         deleteUserPopup.show();
     }
-    public void deleteEvent(String eventId){
-        for (Event tempEvent:eventsList) {
-            if (tempEvent.getEventInfo().getId().equals(eventId))
-            {
-                eventsList.remove(tempEvent);
-                break;
-            }
-        }
-        eventsDatasource.child(eventId).removeValue();
-    }
-    public void deleteUserFromGroup(String userId){
-        if (!user.getUserInfo().getId().equals(userId)){
-            User user = getUserById(userId);
-            if (user!=null){
-                if (checkIfUserIsInCurrentGroup(userId)){
-                    List<UserGroup> userGroups = user.getGroups();
-                    for (UserGroup userGroup:userGroups) {
-                        if (userGroup.getGroupId().equals(currentGroup.getGroupInfo().getId())){
-                            userGroups.remove(userGroup);
-                            break;
-                        }
-                    }
-                    usersDatasource.child(userId).child("groups").setValue(userGroups);
-                    List<UserInGroupInfo> usersInGroup = currentGroup.getUsersInGroup();
-                    for (UserInGroupInfo userInGroup:usersInGroup) {
-                        if (userInGroup.getId().equals(userId)){
-                            usersInGroup.remove(userInGroup);
-                            break;
-                        }
-                    }
-                    groupsDatasource.child(currentGroup.getGroupInfo().getId()).child("usersInGroup").setValue(usersInGroup);
-                }
-                else {
-                    Toast.makeText(InGroupScreen.this,"User not in current group!",Toast.LENGTH_SHORT).show();
-                }
-            }
-            else {
-                Toast.makeText(InGroupScreen.this,"User does not exist!",Toast.LENGTH_SHORT).show();
-            }
-        }
-        else{
-            Toast.makeText(InGroupScreen.this,"Cannot remove yourself from the group!",Toast.LENGTH_SHORT).show();
-        }
 
-    }
-    public User getUserById(String userId){
-        for (User user:allUsersList) {
-            if (user.getUserInfo().getId().equals(userId)){
-                return user;
-            }
-        }
-        return null;
-    }
     public void showAddUserEmailPopup(View view){
         addUserPopup = new Dialog(InGroupScreen.this);
         addUserPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -1023,49 +889,21 @@ public class InGroupScreen extends AppCompatActivity{
         submitNewUserButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                User user = getUserIfEmailExists(newUserEmailField.getText().toString());
-                if (user!=null){
-                    if (!checkIfUserIsInCurrentGroup(user.getUserInfo().getId())){
-                        List<UserGroup> userGroups = user.getGroups();
-                        if (userGroups != null){
-                            userGroups.add(new UserGroup(currentGroup.getGroupInfo().getId(),false));
-                        }
-                        else {
-                            userGroups = new ArrayList<>();
-                            userGroups.add(new UserGroup(currentGroup.getGroupInfo().getId(),false));
-                        }
-                        usersDatasource.child(user.getUserInfo().getId()).child("groups").setValue(userGroups);
-                        List<UserInGroupInfo> usersInGroup = currentGroup.getUsersInGroup();
-                        usersInGroup.add(new UserInGroupInfo(user.getUserInfo().getId(), Role.USER));
-                        groupsDatasource.child(currentGroup.getGroupInfo().getId()).child("usersInGroup").setValue(usersInGroup);
+                userRepository.getUserIdByEmail(newUserEmailField.getText().toString(), new UserListener() {
+                    @Override
+                    public void onUserIdLoadedByEmail(String userId) {
+                        groupRepository.addUserToGroup(currentGroup.getGroupInfo().getId(),userId,Role.USER);
                         addUserPopup.cancel();
                     }
-                    else {
-                        Toast.makeText(InGroupScreen.this,"User is already in group!",Toast.LENGTH_SHORT).show();
-                    }
 
-                }
-                else {
-                    Toast.makeText(InGroupScreen.this,"No such user!",Toast.LENGTH_SHORT).show();
-                }
+                    @Override
+                    public void onFailure(DatabaseError error) {
+                        Toast.makeText(InGroupScreen.this,"Database Error!",Toast.LENGTH_LONG).show();
+                    }
+                });
+
             }
         });
-    }
-    public Boolean checkIfUserIsInCurrentGroup(String userId){
-        for (UserInGroupInfo userInGroup:currentGroup.getUsersInGroup()) {
-            if (userInGroup.getId().equals(userId)){
-                return true;
-            }
-        }
-        return false;
-    }
-    public User getUserIfEmailExists(String email) {
-        for (User user:allUsersList) {
-            if (user.getUserInfo().getEmail().equals(email)){
-                return user;
-            }
-        }
-        return null;
     }
 
     private void eventsSetOnItemClickListener() {
@@ -1111,13 +949,18 @@ public class InGroupScreen extends AppCompatActivity{
         ImageRecyclerViewAdapter imagesRecycleViewAdapter = pagerAdapter.getImageRecyclerViewAdapter();
         imagesRecycleViewAdapter.setOnItemClickListener(new ImageRecyclerViewAdapter.OnItemClickListener() {
             @Override
-            public void onItemClick(Uri imageUri,String imageReference) {
-                showImagePopup(imageUri,imageReference);
+            public void onItemClick(Image image) {
+                if(deleteImageMode){
+                    showDeleteImagePopup(image);
+                }
+                else {
+                    showImagePopup(image);
+                }
             }
         });
     }
 
-    public void showImagePopup(Uri imageUri,String imageReference) {
+    public void showImagePopup(Image image) {
         imagePopup = new Dialog(InGroupScreen.this);
         imagePopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
         imagePopup.setCancelable(true);
@@ -1133,25 +976,36 @@ public class InGroupScreen extends AppCompatActivity{
             }
         });
         ImageView imageContainer = imagePopup.findViewById(R.id.imageContainer);
-        if (deleteImageMode){
-            TextView deleteImageText = imagePopup.findViewById(R.id.deleteImageText);
-            AppCompatButton confirmDeleteImageButton = imagePopup.findViewById(R.id.confirmDeleteImageButton);
-            deleteImageText.setVisibility(View.VISIBLE);
-            confirmDeleteImageButton.setVisibility(View.VISIBLE);
-            confirmDeleteImageButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    deleteImage(imageReference);
-                    if (deleteImageMode){
-                        imagePopup.cancel();
-                    }
-                }
-            });
-        }
-        Glide.with(imageContainer.getContext()).load(imageUri).into(imageContainer);
+        Glide.with(imageContainer.getContext()).load(image.getUri()).into(imageContainer);
         imagePopup.show();
     }
-
+    public void showDeleteImagePopup(Image image){
+        deleteImagePopup = new Dialog(InGroupScreen.this);
+        deleteImagePopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        deleteImagePopup.setCancelable(true);
+        deleteImagePopup.setContentView(R.layout.delete_image_popup);
+        int width = (int) (getResources().getDisplayMetrics().widthPixels);
+        int height = deleteImagePopup.getWindow().getAttributes().height;
+        deleteImagePopup.getWindow().setLayout(width,height);
+        AppCompatButton cancelPopupButton = deleteImagePopup.findViewById(R.id.cancelPopupButton);
+        cancelPopupButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deleteImagePopup.cancel();
+            }
+        });
+        ImageView imageContainer = deleteImagePopup.findViewById(R.id.imageContainer);
+        Glide.with(imageContainer.getContext()).load(image.getUri()).into(imageContainer);
+        deleteImagePopup.show();
+        AppCompatButton confirmDeleteImageButton = deleteImagePopup.findViewById(R.id.confirmDeleteImageButton);
+        confirmDeleteImageButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deleteImage(image.getReference());
+                deleteImagePopup.cancel();
+            }
+        });
+    }
     private void deleteImage(String imageReference) {
         StorageReference currentGroupReference = storageReference.child(currentGroup.getGroupInfo().getId());
         currentGroupReference.child(imageReference).delete().addOnSuccessListener(new OnSuccessListener<Void>() {
@@ -1163,14 +1017,14 @@ public class InGroupScreen extends AppCompatActivity{
     }
 
     public void showUserDetailsPopup(String userId){
-        User user = new User();
+        User displayedUser = new User();
         for (User tempUser: currentGroupUsersList) {
             if (tempUser.getUserInfo().getId().equals(userId)){
-                user = tempUser;
+                displayedUser = tempUser;
                 break;
             }
         }
-        if (user.getUserInfo().getId()!=null){
+        if (displayedUser.getUserInfo().getId()!=null){
             userDetailsPopup = new Dialog(InGroupScreen.this);
             userDetailsPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
             userDetailsPopup.setCancelable(true);
@@ -1188,20 +1042,20 @@ public class InGroupScreen extends AppCompatActivity{
             TextView userDetailsNameField = userDetailsPopup.findViewById(R.id.userDetailsNameField);
             TextView userDetailsAgeField = userDetailsPopup.findViewById(R.id.userDetailsAgeField);
             TextView userDetailsHometownField = userDetailsPopup.findViewById(R.id.userDetailsHometownField);
-            userDetailsAdminField = userDetailsPopup.findViewById(R.id.userDetailsAdminField);
+            TextView userDetailsAdminField = userDetailsPopup.findViewById(R.id.userDetailsRoleField);
             AppCompatButton userDetailsChangeRole = userDetailsPopup.findViewById(R.id.userDetailsChangeRole);
-            if (user.getUserInfo().getFirstLogin()&currentUserRole==Role.ADMIN){
-                userDetailsNameField.setText(user.getUserInfo().getEmail());
+            if (displayedUser.getUserInfo().getFirstLogin()&currentUserRole==Role.ADMIN){
+                userDetailsNameField.setText(displayedUser.getUserInfo().getEmail());
             }
             else {
-                userDetailsNameField.setText(user.getUserInfo().getName());
-                userDetailsAgeField.setText(user.getUserInfo().getAge().toString());
-                userDetailsHometownField.setText(user.getUserInfo().getHometown());
+                userDetailsNameField.setText(displayedUser.getUserInfo().getName());
+                userDetailsAgeField.setText(displayedUser.getUserInfo().getAge().toString());
+                userDetailsHometownField.setText(displayedUser.getUserInfo().getHometown());
             }
             switch (currentUserRole){
                 case ADMIN:
                     for (UserInGroupInfo userInGroupInfo:currentGroup.getUsersInGroup()) {
-                        if (userInGroupInfo.getId().equals(user.getUserInfo().getId())){
+                        if (userInGroupInfo.getId().equals(displayedUser.getUserInfo().getId())){
                             userDetailsAdminField.setText(userInGroupInfo.getRole().toString());
                             userDetailsAdminField.setVisibility(View.VISIBLE);
                             break;
@@ -1210,16 +1064,16 @@ public class InGroupScreen extends AppCompatActivity{
                     break;
                 case OWNER:
                     for (UserInGroupInfo userInGroupInfo:currentGroup.getUsersInGroup()) {
-                        if (userInGroupInfo.getId().equals(user.getUserInfo().getId())){
+                        if (userInGroupInfo.getId().equals(displayedUser.getUserInfo().getId())){
                             userDetailsAdminField.setText(userInGroupInfo.getRole().toString());
                             userDetailsAdminField.setVisibility(View.VISIBLE);
                             if (!userInGroupInfo.getRole().equals(Role.OWNER)){
                                 userDetailsChangeRole.setVisibility(View.VISIBLE);
-                                User finalUser = user;
+                                User finalDisplayedUser = displayedUser;
                                 userDetailsChangeRole.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
-                                        showConfirmRoleChangePopup(finalUser);
+                                        showConfirmRoleChangePopup(finalDisplayedUser.getUserInfo());
                                     }
                                 });
                             }
@@ -1233,7 +1087,7 @@ public class InGroupScreen extends AppCompatActivity{
         }
 
     }
-    public void showConfirmRoleChangePopup(User user){
+    public void showConfirmRoleChangePopup(UserInfo userInfo){
         userRoleChangePopup = new Dialog(InGroupScreen.this);
         userRoleChangePopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
         userRoleChangePopup.setCancelable(true);
@@ -1253,33 +1107,24 @@ public class InGroupScreen extends AppCompatActivity{
         changeUserRoleConfirmButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                changeUserRole(user);
+                groupRepository.changeUserRole(currentGroup.getGroupInfo().getId(),userInfo.getId());
+                TextView userDetailsRoleField = userDetailsPopup.findViewById(R.id.userDetailsRoleField);
+                groupRepository.getUserInGroupOnce(currentGroup.getGroupInfo().getId(), userInfo.getId(), new GroupListener() {
+                    @Override
+                    public void onUserInGroupLoaded(UserInGroupInfo userInGroup) {
+                        if (userInGroup.getRole().equals(Role.USER)){
+                            userDetailsRoleField.setText(Role.ADMIN.toString());
+                        }
+                        else{
+                            userDetailsRoleField.setText(Role.USER.toString());
+                        }
+                    }
+                });
                 userRoleChangePopup.cancel();
             }
         });
-        changeUserRoleConfirmField.setText("Are you sure you want to change "+ user.getUserInfo().getName()+"'s role?");
+        changeUserRoleConfirmField.setText("Are you sure you want to change "+ userInfo.getName()+"'s role?");
         userRoleChangePopup.show();
-    }
-    public void changeUserRole(User user){
-        List<UserInGroupInfo> usersInGroupInfo = currentGroup.getUsersInGroup();
-        for (UserInGroupInfo userInGroupInfo:usersInGroupInfo) {
-            if (userInGroupInfo.getId().equals(user.getUserInfo().getId())){
-                if (!userInGroupInfo.getRole().equals(Role.OWNER)){
-                    if(userInGroupInfo.getRole().equals(Role.ADMIN)) {
-                            userInGroupInfo.setRole(Role.USER);
-                            userDetailsAdminField.setText(Role.USER.toString());
-                        }
-                    else {
-                        userInGroupInfo.setRole(Role.ADMIN);;
-                        userDetailsAdminField.setText(Role.ADMIN.toString());
-                    }
-                    groupsDatasource.child(currentGroup.getGroupInfo().getId()).child("usersInGroup").setValue(usersInGroupInfo);
-                    pagerAdapter.updateUsers(currentGroupUsersList);
-                    pagerAdapter.updateUsersInGroupList(usersInGroupList);
-                    break;
-                }
-            }
-        }
     }
     public void showEventDetailsPopup(String eventId){
         Event event = new Event();
@@ -1330,55 +1175,56 @@ public class InGroupScreen extends AppCompatActivity{
             }
 
             if (event.getEventInfo().getParticipation()){
-                Event finalEvent = event;
-                eventsDatasource.child(eventId).child("participants").child(user.getUserInfo().getId()).addValueEventListener(new ValueEventListener() {
+                eventParticipationField.setVisibility(View.VISIBLE);
+                eventParticipationButton.setVisibility(View.VISIBLE);
+                groupRepository.getEventParticipant(currentGroup.getGroupInfo().getId(), eventId, user.getUserInfo().getId(), new GroupListener() {
                     @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        eventParticipationField.setVisibility(View.VISIBLE);
-                        eventParticipationButton.setVisibility(View.VISIBLE);
-                        EventParticipant eventParticipant = snapshot.getValue(EventParticipant.class);
-                        if (eventParticipant!=null){
-                            switch (eventParticipant.getStatus()){
-                                case DENIED:
-                                    eventParticipationField.setText("Participation Denied");
-                                    eventParticipationButton.setVisibility(View.GONE);
-                                    break;
-                                case PENDING:
-                                    eventParticipationField.setText("Participation Pending");
-                                    eventParticipationButton.setText("Withdraw");
-                                    break;
-                                case ACCEPTED:
-                                    eventParticipationField.setText("Participation Accepted");
-                                    eventParticipationButton.setText("Withdraw");
-                                    break;
-                                default:
-                                    eventParticipationField.setVisibility(View.GONE);
-                                    eventParticipationButton.setVisibility(View.GONE);
-                                    break;
+                    public void onEventParticipantLoaded(EventParticipant eventParticipant) {
+                        if(eventParticipant!=null) {
+                            if (eventParticipant.getUserId().equals(user.getUserInfo().getId())){
+                                switch (eventParticipant.getStatus()){
+                                    case DENIED:
+                                        eventParticipationField.setText("Participation Denied");
+                                        eventParticipationButton.setVisibility(View.GONE);
+                                        break;
+                                    case PENDING:
+                                        eventParticipationField.setText("Participation Pending");
+                                        eventParticipationButton.setText("Withdraw");
+                                        eventParticipationButton.setVisibility(View.VISIBLE);
+                                        break;
+                                    case ACCEPTED:
+                                        eventParticipationField.setText("Participation Accepted");
+                                        eventParticipationButton.setText("Withdraw");
+                                        eventParticipationButton.setVisibility(View.VISIBLE);
+                                        break;
+                                    default:
+                                        eventParticipationField.setVisibility(View.GONE);
+                                        eventParticipationButton.setVisibility(View.GONE);
+                                        break;
+                                }
                             }
+                            showParticipantsButton.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    showParticipantsPopup(eventId);
+
+                                }
+                            });
+                            eventParticipationButton.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
+                                    groupRepository.deleteParticipant(currentGroup.getGroupInfo().getId(),eventId,user.getUserInfo().getId());
+                                    eventParticipationField.setText("Not Requested");
+                                    eventParticipationButton.setText("Join");
+                                }
+                            });
                         }
-                        if (eventParticipant==null){
+                        else {
                             eventParticipationField.setText("Not Requested");
                             eventParticipationButton.setText("Join");
-                        }
-                        showParticipantsButton.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                showParticipantsPopup(eventId);
-
-                            }
-                        });
-                        eventParticipationButton.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                if (eventParticipant !=null){
-                                    if (!eventParticipant.getStatus().equals(Status.DENIED)){
-                                        eventsDatasource.child(eventId).child("participants").child(eventParticipant.getUserId()).removeValue();
-                                        eventParticipationField.setText("Not Requested");
-                                        eventParticipationButton.setText("Join");
-                                    }
-                                }
-                                else {
+                            eventParticipationButton.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View view) {
                                     EventParticipant newParticipant = new EventParticipant();
                                     newParticipant.setUserId(user.getUserInfo().getId());
                                     newParticipant.setUserName(user.getUserInfo().getName());
@@ -1388,7 +1234,7 @@ public class InGroupScreen extends AppCompatActivity{
                                     else {
                                         newParticipant.setStatus(Status.ACCEPTED);
                                     }
-                                    eventsDatasource.child(eventId).child("participants").child(newParticipant.getUserId()).setValue(newParticipant);
+                                    groupRepository.addEventParticipant(currentGroup.getGroupInfo().getId(),eventId,newParticipant);
                                     if (newParticipant.getStatus().equals(Status.ACCEPTED)){
                                         eventParticipationField.setText("Participation Accepted");
                                         eventParticipationButton.setText("Withdraw");
@@ -1398,14 +1244,9 @@ public class InGroupScreen extends AppCompatActivity{
                                         eventParticipationButton.setText("Withdraw");
                                     }
                                 }
-                            }
-                        });
-                    }
+                            });
 
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-
+                        }
                     }
                 });
             }
@@ -1421,7 +1262,9 @@ public class InGroupScreen extends AppCompatActivity{
             else {
                 SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy",Locale.ROOT);
                 String date = sdf.format(event.getEventInfo().getDepartureTime());
-                eventDetailsDepartureTimeField.setText(date);
+                sdf = new SimpleDateFormat("HH:mm", Locale.ENGLISH);
+                String time =sdf.format(event.getEventInfo().getDepartureTime());
+                eventDetailsDepartureTimeField.setText(date + "\n" +time);
             }
             if (event.getEventInfo().getEquipment().equals("")){
                 eventDetailsEquipmentField.setVisibility(View.GONE);
@@ -1456,6 +1299,9 @@ public class InGroupScreen extends AppCompatActivity{
         participantsPopup.requestWindowFeature(Window.FEATURE_NO_TITLE);
         participantsPopup.setCancelable(true);
         participantsPopup.setContentView(R.layout.participants_popup);
+        int width = (int) (getResources().getDisplayMetrics().widthPixels);
+        int height = participantsPopup.getWindow().getAttributes().height;
+        participantsPopup.getWindow().setLayout(width,height);
         AppCompatButton cancelPopupButton = participantsPopup.findViewById(R.id.cancelPopupButton);
         cancelPopupButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -1469,26 +1315,22 @@ public class InGroupScreen extends AppCompatActivity{
         TextView acceptedRequestsField = participantsPopup.findViewById(R.id.acceptedRequestsField);
         TextView allRequestsField = participantsPopup.findViewById(R.id.allRequestsField);
         TextView deniedRequestsField = participantsPopup.findViewById(R.id.deniedRequestsField);
-        List<EventParticipant> participants =new ArrayList<>();
         participantsContainer.setLayoutManager(new LinearLayoutManager(this));
-        eventsDatasource.child(eventId).child("participants").addValueEventListener(new ValueEventListener() {
+        ParticipantRecyclerViewAdapter participantAdapter = new ParticipantRecyclerViewAdapter(new ArrayList<>(),eventId,currentGroup.getGroupInfo().getId(),groupRepository,userRepository);
+        participantsContainer.setAdapter(participantAdapter);
+        groupRepository.getAllEventParticipants(currentGroup.getGroupInfo().getId(), eventId, new GroupListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                participants.clear();
-                for (DataSnapshot dataSnapshot:snapshot.getChildren()) {
-                    EventParticipant participant = dataSnapshot.getValue(EventParticipant.class);
-                    participants.add(participant);
-                }
+            public void onAllEventParticipantsLoaded(List<EventParticipant> eventParticipants) {
                 int pendingRequests = 0;
                 int acceptedRequests = 0;
                 int deniedRequests = 0;
-                if (!participants.isEmpty()){
+                if (!eventParticipants.isEmpty()){
                     noParticipantsText.setVisibility(View.GONE);
                     pendingRequestsField.setVisibility(View.VISIBLE);
                     acceptedRequestsField.setVisibility(View.VISIBLE);
                     allRequestsField.setVisibility(View.VISIBLE);
                     deniedRequestsField.setVisibility(View.VISIBLE);
-                    for (EventParticipant participant:participants) {
+                    for (EventParticipant participant:eventParticipants) {
                         if (participant.getStatus().equals(Status.PENDING)){
                             pendingRequests++;
                         }
@@ -1503,28 +1345,15 @@ public class InGroupScreen extends AppCompatActivity{
                     acceptedRequestsField.setText("Accepted : " + acceptedRequests);
                     deniedRequestsField.setText("Denied : " + deniedRequests);
                     allRequestsField.setText("All : " + (pendingRequests + acceptedRequests + deniedRequests));
-                    ParticipantRecyclerViewAdapter participantAdapter = new ParticipantRecyclerViewAdapter(participants,eventId,eventsDatasource);
-                    participantsContainer.setAdapter(participantAdapter);
+                    participantAdapter.updateParticipants(eventParticipants);
                 }
             }
-
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
+            public void onFailure(DatabaseError error) {
+                Toast.makeText(InGroupScreen.this,"Database Error!",Toast.LENGTH_LONG).show();
             }
         });
 
         participantsPopup.show();
-    }
-
-    public void updateLastLogin(){
-        List<UserInGroupInfo> usersInGroup = currentGroup.getUsersInGroup();
-        for (UserInGroupInfo userInGroupInfo:usersInGroup){
-            if (userInGroupInfo.getId().equals(user.getUserInfo().getId())){
-                userInGroupInfo.setLastLogin(new Date());
-                groupsDatasource.child(currentGroup.getGroupInfo().getId()).child("usersInGroup").child(user.getUserInfo().getId()).setValue(userInGroupInfo);
-                break;
-            }
-        }
     }
 }

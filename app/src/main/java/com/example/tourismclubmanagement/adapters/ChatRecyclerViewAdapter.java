@@ -34,8 +34,15 @@ public class ChatRecyclerViewAdapter extends RecyclerView.Adapter<ChatRecyclerVi
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         StringBuilder messageHeader = new StringBuilder();
         ChatMessage message = messages.get(position);
+        String sender = "";
+        if (message.getSender().length()>=21){
+            sender = message.getSender().substring(0,20) + "...";
+        }
+        else {
+            sender = message.getSender();
+        }
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM HH:mm", Locale.ENGLISH);
-        messageHeader.append(dateFormat.format(message.getDate()) + " " + message.getSender() + " : ");
+        messageHeader.append(dateFormat.format(message.getDate()) + " " + sender + " : ");
         holder.chatMessageHeader.setText(messageHeader);
         holder.chatMessage.setText(message.getMessage());
     }

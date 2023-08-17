@@ -1,6 +1,5 @@
 package com.example.tourismclubmanagement.adapters;
 
-import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +12,7 @@ import androidx.viewpager.widget.PagerAdapter;
 
 import com.example.tourismclubmanagement.R;
 import com.example.tourismclubmanagement.models.Event;
+import com.example.tourismclubmanagement.models.Image;
 import com.example.tourismclubmanagement.models.User;
 import com.example.tourismclubmanagement.models.UserInGroupInfo;
 
@@ -34,7 +34,7 @@ public class MyPagerAdapter extends PagerAdapter {
     private final EventRecyclerViewAdapter eventRecyclerViewAdapter;
     private final UsersRecyclerViewAdapter usersRecyclerViewAdapter;
     private final ImageRecyclerViewAdapter imageRecyclerViewAdapter;
-    public MyPagerAdapter(LayoutInflater inflater,List<Event> events,List<User> users,List<Uri> images, List<UserInGroupInfo> usersInGroupList) {
+    public MyPagerAdapter(LayoutInflater inflater, List<Event> events, List<User> users, List<Image> images, List<UserInGroupInfo> usersInGroupList) {
         this.inflater = inflater;
         eventRecyclerViewAdapter = new EventRecyclerViewAdapter(events);
         usersRecyclerViewAdapter = new UsersRecyclerViewAdapter(users, usersInGroupList);
@@ -94,11 +94,8 @@ public class MyPagerAdapter extends PagerAdapter {
     public void updateEvents(List<Event> events){
         eventRecyclerViewAdapter.updateEventsList(events);
     }
-    public void updateImages(List<Uri> images){
+    public void updateImages(List<Image> images){
         imageRecyclerViewAdapter.updateImagesList(images);
-    }
-    public void updateImageReferences(List<String> imageReferences){
-        imageRecyclerViewAdapter.updateImageReferencesList(imageReferences);
     }
     public EventRecyclerViewAdapter getEventRecyclerViewAdapter() {
         return eventRecyclerViewAdapter;
