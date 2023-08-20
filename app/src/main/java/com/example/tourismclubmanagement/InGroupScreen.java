@@ -246,8 +246,8 @@ public class InGroupScreen extends AppCompatActivity{
         AppCompatButton deleteEventButton = pagerAdapter.getPage(0).findViewById(R.id.deleteEventButton);
         AppCompatButton uploadImageButton = pagerAdapter.getPage(2).findViewById(R.id.uploadImageButton);
         LinearLayoutCompat eventsPageButtonsContainer = pagerAdapter.getPage(0).findViewById(R.id.eventsPageButtonsContainer);
-        ConstraintLayout membersPageButtonsContainer = pagerAdapter.getPage(1).findViewById(R.id.membersPageButtonsContainer);
-        ConstraintLayout photosPageButtonsContainer = pagerAdapter.getPage(2).findViewById(R.id.photosPageButtonsContainer);
+        LinearLayoutCompat membersPageButtonsContainer = pagerAdapter.getPage(1).findViewById(R.id.membersPageButtonsContainer);
+        LinearLayoutCompat photosPageButtonsContainer = pagerAdapter.getPage(2).findViewById(R.id.photosPageButtonsContainer);
         eventsPageButtonsContainer.setVisibility(View.VISIBLE);
         membersPageButtonsContainer.setVisibility(View.VISIBLE);
         photosPageButtonsContainer.setVisibility(View.VISIBLE);
