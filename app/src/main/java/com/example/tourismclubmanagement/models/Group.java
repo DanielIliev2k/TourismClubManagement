@@ -1,9 +1,8 @@
 package com.example.tourismclubmanagement.models;
 
-import java.io.Serializable;
 import java.util.List;
 
-public class Group implements Serializable, Comparable<Group> {
+public class Group implements Comparable<Group> {
     private List<UserInGroupInfo> usersInGroup;
     private List<Event> events;
     private List<ChatMessage> chat;

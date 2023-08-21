@@ -1,9 +1,8 @@
 package com.example.tourismclubmanagement.models;
 
-import java.io.Serializable;
 import java.util.List;
 
-public class User implements Serializable {
+public class User{
     private List<UserGroup> groups;
     private UserInfo userInfo;
 

@@ -3,7 +3,7 @@ package com.example.tourismclubmanagement.models;
 import java.io.Serializable;
 import java.util.Date;
 
-public class GroupInfo implements Serializable {
+public class GroupInfo {
     private String id;
     private String groupName;
     private Date dateCreated;
